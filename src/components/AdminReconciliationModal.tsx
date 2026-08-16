@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Coins, CheckCircle, AlertTriangle, X, ShieldCheck, UserCheck, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Coins, CheckCircle, AlertTriangle, X, ShieldCheck, UserCheck, Calendar, Zap } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 interface ReconcileModalProps {
@@ -15,21 +15,31 @@ export const AdminReconciliationModal: React.FC<ReconcileModalProps> = ({ isOpen
     ? pengambilanList.find(p => p.id === pengambilanId)
     : pengambilanList.find(p => p.status === 'berjalan') || pengambilanList[pengambilanList.length - 1];
 
-  const initialCash = targetSession ? targetSession.totalSetoran : 0;
-  const [uangFisikInput, setUangFisikInput] = useState<number>(initialCash);
+  const totalSystem = targetSession ? targetSession.totalSetoran : 0;
+  
+  // Use String state so it handles smooth numeric typing, backspace, & auto-filling
+  const [uangFisikInputStr, setUangFisikInputStr] = useState<string>(String(totalSystem));
   const [catatanInput, setCatatanInput] = useState<string>('Uang fisik lengkap dan sudah dihitung Bendahara.');
   const [feedback, setFeedback] = useState<{ success: boolean; message: string } | null>(null);
 
+  // Sync state automatically whenever modal opens or active session updates
+  useEffect(() => {
+    if (targetSession) {
+      setUangFisikInputStr(String(targetSession.totalSetoran));
+      setFeedback(null);
+    }
+  }, [isOpen, targetSession?.id, targetSession?.totalSetoran]);
+
   if (!isOpen || !targetSession) return null;
 
-  const totalSystem = targetSession.totalSetoran;
-  const selisih = uangFisikInput - totalSystem;
+  const numericUangFisik = Number(uangFisikInputStr) || 0;
+  const selisih = numericUangFisik - totalSystem;
   const splitPemuda = Math.floor(targetSession.totalJimpitan / 2);
   const splitDusun = Math.floor(targetSession.totalJimpitan / 2);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const res = rekonsiliasiSahkanPengambilan(targetSession.id, uangFisikInput, catatanInput);
+    const res = rekonsiliasiSahkanPengambilan(targetSession.id, numericUangFisik, catatanInput);
     setFeedback({ success: res.success, message: res.message });
 
     setTimeout(() => {
@@ -72,19 +82,19 @@ export const AdminReconciliationModal: React.FC<ReconcileModalProps> = ({ isOpen
             <span>Petugas Lapangan Penanggung Jawab:</span>
           </div>
           <span className="font-extrabold text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
-            {targetSession.petugasLapangan || 'Danang Prasetyo (Petugas Lapangan)'}
+            {targetSession.petugasLapangan || 'Kelompok SATU'}
           </span>
         </div>
 
         {/* System Summary Card */}
         <div className="glass-card p-4 rounded-2xl border border-gray-800 space-y-2 text-xs">
-          <p className="text-gray-400 font-bold uppercase">Ringkasan Sistem Pengambilan:</p>
+          <p className="text-gray-400 font-bold uppercase">Ringkasan Sistem Pengambilan Sesi:</p>
           <div className="flex justify-between">
             <span className="text-gray-300">Total Warga Diambil</span>
             <span className="font-bold text-white">{targetSession.totalSudahDiambil} / {targetSession.totalWarga} Warga</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-300">Total Jimpitan Sistem (Rp3.000)</span>
+            <span className="text-gray-300">Total Jimpitan Sistem</span>
             <span className="font-bold text-amber-400">Rp {targetSession.totalJimpitan.toLocaleString('id-ID')}</span>
           </div>
           <div className="flex justify-between">
@@ -99,17 +109,39 @@ export const AdminReconciliationModal: React.FC<ReconcileModalProps> = ({ isOpen
 
         {/* Form Input Uang Fisik */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-200 mb-1.5">
-              Jumlah Uang Fisik Diterima Bendahara dari {targetSession.petugasLapangan || 'Petugas'} (Rp)
-            </label>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-gray-200">
+                Jumlah Uang Fisik Diterima Bendahara (Rp):
+              </label>
+
+              {/* 1-Tap Auto-fill Button */}
+              <button
+                type="button"
+                onClick={() => setUangFisikInputStr(String(totalSystem))}
+                className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center space-x-1 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/30"
+              >
+                <Zap className="w-3 h-3 text-amber-300" />
+                <span>Auto-Fill Total Sistem (Rp {totalSystem.toLocaleString('id-ID')})</span>
+              </button>
+            </div>
+
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               required
-              value={uangFisikInput || ''}
-              onChange={(e) => setUangFisikInput(e.target.value === '' ? 0 : Number(e.target.value))}
+              value={uangFisikInputStr}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9]/g, '');
+                setUangFisikInputStr(val);
+              }}
+              placeholder="Ketik jumlah uang fisik..."
               className="w-full glass-input px-4 py-3 rounded-xl text-lg font-black text-emerald-400 focus:ring-2 focus:ring-emerald-500"
             />
+            <p className="text-[10px] text-gray-400">
+              *Otomatis terisi nominal total setoran kelompok (Rp {totalSystem.toLocaleString('id-ID')}).
+            </p>
           </div>
 
           {/* Selisih Indicator Status Card */}
@@ -119,7 +151,7 @@ export const AdminReconciliationModal: React.FC<ReconcileModalProps> = ({ isOpen
                 <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
                 <div>
                   <p className="font-bold text-emerald-200">🟢 STATUS: SESUAI (Selisih Rp0)</p>
-                  <p className="text-[11px] text-emerald-300/80">Uang fisik tepat cocok dengan total setoran sistem.</p>
+                  <p className="text-[11px] text-emerald-300/80">Uang fisik tepat cocok dengan total setoran sistem kelompok.</p>
                 </div>
               </div>
             ) : (
