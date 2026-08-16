@@ -106,8 +106,8 @@ export const AdminReconciliationModal: React.FC<ReconcileModalProps> = ({ isOpen
             <input
               type="number"
               required
-              value={uangFisikInput}
-              onChange={(e) => setUangFisikInput(Number(e.target.value))}
+              value={uangFisikInput || ''}
+              onChange={(e) => setUangFisikInput(e.target.value === '' ? 0 : Number(e.target.value))}
               className="w-full glass-input px-4 py-3 rounded-xl text-lg font-black text-emerald-400 focus:ring-2 focus:ring-emerald-500"
             />
           </div>

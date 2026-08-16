@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, Search, Check, Clock, ArrowLeft, Calendar, Save, Sparkles } from 'lucide-react';
+import { UserCheck, Search, Check, Clock, ArrowLeft, Calendar, Save, Sparkles, AlertTriangle, ShieldCheck, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 interface AdminMobileEntryProps {
@@ -18,23 +18,26 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
 
   // Metadata session states (Tanggal & Petugas Lapangan - Free Input supported!)
   const [tanggalSesi, setTanggalSesi] = useState<string>(activeSession.tanggalPengambilan || new Date().toISOString().split('T')[0]);
-  const [petugasSesi, setPetugasSesi] = useState<string>(activeSession.petugasLapangan || 'Danang Prasetyo (Petugas Lapangan)');
+  const [petugasSesi, setPetugasSesi] = useState<string>(activeSession.petugasLapangan || 'Humam Syarif (Ketua Pemuda)');
   const [isSavedMetadata, setIsSavedMetadata] = useState<boolean>(false);
 
   useEffect(() => {
     setTanggalSesi(activeSession.tanggalPengambilan || new Date().toISOString().split('T')[0]);
-    setPetugasSesi(activeSession.petugasLapangan || 'Danang Prasetyo (Petugas Lapangan)');
+    setPetugasSesi(activeSession.petugasLapangan || 'Humam Syarif (Ketua Pemuda)');
   }, [activeSession]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'semua' | 'sudah' | 'belum'>('semua');
   const [showSuggestions, setShowSuggestions] = useState(false);
   
-  // Selected Warga for editing
+  // Selected Warga for editing - Use String state to allow smooth backspacing/delete keyboard input
   const [selectedWargaId, setSelectedWargaId] = useState<number | null>(null);
-  const [tabunganInput, setTabunganInput] = useState<number>(10000);
+  const [tabunganInputStr, setTabunganInputStr] = useState<string>('10000');
   const [statusInput, setStatusInput] = useState<'sudah_diambil' | 'tidak_ada' | 'ditunda' | 'tidak_ikut'>('sudah_diambil');
   const [keteranganInput, setKeteranganInput] = useState<string>('');
+
+  // Confirmation Popup Modal State
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 
   const activeWargaItems = activeParticipants.map(p => {
     const w = wargaList.find(item => item.id === p.wargaId);
@@ -80,19 +83,26 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
     setShowSuggestions(false);
     const existingTx = transaksiPengambilanList.find(t => t.pengambilanId === activeSession.id && t.wargaId === wargaId);
     if (existingTx && existingTx.status === 'sudah_diambil') {
-      setTabunganInput(existingTx.tabungan);
+      setTabunganInputStr(String(existingTx.tabungan));
       setStatusInput('sudah_diambil');
       setKeteranganInput(existingTx.keterangan || '');
     } else {
-      setTabunganInput(10000);
+      setTabunganInputStr('10000');
       setStatusInput('sudah_diambil');
       setKeteranganInput('');
     }
   };
 
-  const handleSaveItem = (e: React.FormEvent) => {
+  const handleOpenConfirmPopup = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedWargaId) return;
+    setShowConfirmModal(true);
+  };
+
+  const handleExecuteSave = () => {
+    if (!selectedWargaId) return;
+
+    const numericTabungan = Number(tabunganInputStr) || 0;
 
     // Ensure session date & officer are updated
     updatePengambilanSessionMetadata(activeSession.id, tanggalSesi, petugasSesi);
@@ -101,10 +111,12 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
       activeSession.id,
       selectedWargaId,
       3000,
-      tabunganInput,
+      numericTabungan,
       statusInput,
       keteranganInput
     );
+
+    setShowConfirmModal(false);
 
     // Auto move to next unvisited warga
     const nextItem = activeWargaItems.find(item => item.warga.id > selectedWargaId && item.tx?.status !== 'sudah_diambil');
@@ -114,6 +126,10 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
       setSelectedWargaId(null);
     }
   };
+
+  const selectedWargaObj = wargaList.find(w => w.id === selectedWargaId);
+  const currentNumericTabungan = Number(tabunganInputStr) || 0;
+  const currentTotalSetoran = (statusInput === 'sudah_diambil' ? 3000 : 0) + (statusInput === 'sudah_diambil' ? currentNumericTabungan : 0);
 
   return (
     <div className="space-y-6 animate-fadeIn pb-24 max-w-4xl mx-auto">
@@ -372,7 +388,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
             if (!currentWarga) return null;
 
             return (
-              <form onSubmit={handleSaveItem} className="space-y-4">
+              <form onSubmit={handleOpenConfirmPopup} className="space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-gray-800">
                   <div>
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 tracking-wider">
@@ -403,16 +419,21 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                     <p className="text-[10px] text-gray-400">Otomatis dibagi 50% Pemuda / 50% Dusun saat disahkan</p>
                   </div>
 
-                  {/* Tabungan Free Input */}
+                  {/* Tabungan Free Input with Smooth Backspace & Keyboard Support */}
                   <div className="glass-card p-3.5 rounded-2xl border border-blue-500/30 space-y-2">
                     <label className="text-xs font-bold text-blue-400 uppercase tracking-wider block">
-                      Tabungan Bebas Warga
+                      Tabungan Bebas Warga (Bisa Ketik & Backspace)
                     </label>
                     <input
-                      type="number"
-                      step="5000"
-                      value={tabunganInput}
-                      onChange={(e) => setTabunganInput(Number(e.target.value))}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={tabunganInputStr}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, '');
+                        setTabunganInputStr(val);
+                      }}
+                      placeholder="Ketik angka tabungan (contoh: 10000)..."
                       className="w-full glass-input px-3 py-2 rounded-xl text-base font-bold text-amber-400 focus:ring-2 focus:ring-amber-500"
                     />
                     
@@ -420,28 +441,28 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                     <div className="flex items-center space-x-1.5 pt-1">
                       <button
                         type="button"
-                        onClick={() => setTabunganInput(5000)}
+                        onClick={() => setTabunganInputStr('5000')}
                         className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-800 text-gray-200 hover:bg-gray-700"
                       >
-                        +5rb
+                        5rb
                       </button>
                       <button
                         type="button"
-                        onClick={() => setTabunganInput(10000)}
+                        onClick={() => setTabunganInputStr('10000')}
                         className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-800 text-gray-200 hover:bg-gray-700"
                       >
-                        +10rb
+                        10rb
                       </button>
                       <button
                         type="button"
-                        onClick={() => setTabunganInput(20000)}
+                        onClick={() => setTabunganInputStr('20000')}
                         className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-800 text-gray-200 hover:bg-gray-700"
                       >
-                        +20rb
+                        20rb
                       </button>
                       <button
                         type="button"
-                        onClick={() => setTabunganInput(0)}
+                        onClick={() => setTabunganInputStr('0')}
                         className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-800 text-rose-300 hover:bg-rose-950"
                       >
                         Reset (0)
@@ -515,6 +536,97 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
               </form>
             );
           })()}
+        </div>
+      )}
+
+      {/* Confirmation Modal Popup for Officer Review */}
+      {showConfirmModal && selectedWargaObj && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="w-full max-w-lg glass-panel p-6 sm:p-8 rounded-3xl border border-amber-500/40 shadow-2xl relative space-y-5">
+            
+            <button
+              onClick={() => setShowConfirmModal(false)}
+              className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white font-heading">
+                  Cek Ulang Data Inputan Jimpitan
+                </h3>
+                <p className="text-xs text-gray-400">
+                  Mohon pastikan jumlah uang fisik yang diterima sudah sesuai
+                </p>
+              </div>
+            </div>
+
+            {/* Summary Box */}
+            <div className="p-4 rounded-2xl bg-gray-900 border border-gray-800 space-y-3 text-xs">
+              <div className="flex justify-between items-center pb-2 border-b border-gray-800">
+                <span className="text-gray-400">Warga:</span>
+                <span className="font-bold text-white text-sm">{selectedWargaObj.nama} ({selectedWargaObj.kodeWarga})</span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Alamat & No Rumah:</span>
+                <span className="font-semibold text-gray-200">{selectedWargaObj.alamat} ({selectedWargaObj.noRumah})</span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Jimpitan (3k):</span>
+                <span className="font-bold text-emerald-400">Rp {statusInput === 'sudah_diambil' ? '3.000' : '0'}</span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Setoran Tabungan:</span>
+                <span className="font-bold text-amber-400">Rp {statusInput === 'sudah_diambil' ? currentNumericTabungan.toLocaleString('id-ID') : '0'}</span>
+              </div>
+
+              <div className="flex justify-between items-center pt-2 border-t border-gray-800">
+                <span className="font-bold text-gray-300">TOTAL FISIK DITERIMA:</span>
+                <span className="font-black text-emerald-400 text-base font-heading">
+                  Rp {currentTotalSetoran.toLocaleString('id-ID')}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center pt-1 text-[11px]">
+                <span className="text-gray-500">Petugas Penanggung Jawab:</span>
+                <span className="font-semibold text-emerald-300">{petugasSesi}</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center space-x-2">
+              <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>Cek kembali kecocokan uang tunai sebelum mengkonfirmasi simpan.</span>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="py-3 rounded-xl font-bold text-xs bg-gray-800 text-gray-200 hover:bg-gray-700 transition-colors"
+              >
+                ✏️ Periksa / Edit Lagi
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExecuteSave}
+                className="py-3 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center space-x-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>✅ Ya, Simpan Data</span>
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
 

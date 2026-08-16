@@ -174,8 +174,8 @@ export const AdminKasManager: React.FC = () => {
                   <input
                     type="number"
                     required
-                    value={nominal}
-                    onChange={(e) => setNominal(Number(e.target.value))}
+                    value={nominal || ''}
+                    onChange={(e) => setNominal(e.target.value === '' ? 0 : Number(e.target.value))}
                     className="w-full glass-input px-3.5 py-2 rounded-xl text-xs font-bold text-amber-400"
                   />
                 </div>
@@ -255,8 +255,8 @@ export const AdminKasManager: React.FC = () => {
                   <input
                     type="number"
                     required
-                    value={nominalTabungan}
-                    onChange={(e) => setNominalTabungan(Number(e.target.value))}
+                    value={nominalTabungan || ''}
+                    onChange={(e) => setNominalTabungan(e.target.value === '' ? 0 : Number(e.target.value))}
                     className="w-full glass-input px-3.5 py-2 rounded-xl text-xs font-bold text-amber-400"
                   />
                 </div>
