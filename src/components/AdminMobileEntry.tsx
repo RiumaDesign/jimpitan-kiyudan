@@ -34,6 +34,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
   
   // Selected Warga for editing - Use String state to allow smooth backspacing/delete keyboard input
   const [selectedWargaId, setSelectedWargaId] = useState<number | null>(null);
+  const [jimpitanInputStr, setJimpitanInputStr] = useState<string>('3000');
   const [tabunganInputStr, setTabunganInputStr] = useState<string>('10000');
   const [statusInput, setStatusInput] = useState<'sudah_diambil' | 'tidak_ada' | 'ditunda' | 'tidak_ikut'>('sudah_diambil');
   const [keteranganInput, setKeteranganInput] = useState<string>('');
@@ -85,10 +86,12 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
     setShowSuggestions(false);
     const existingTx = transaksiPengambilanList.find(t => t.pengambilanId === activeSession.id && t.wargaId === wargaId);
     if (existingTx && existingTx.status === 'sudah_diambil') {
+      setJimpitanInputStr(String(existingTx.jimpitan || 3000));
       setTabunganInputStr(String(existingTx.tabungan));
       setStatusInput('sudah_diambil');
       setKeteranganInput(existingTx.keterangan || '');
     } else {
+      setJimpitanInputStr('3000');
       setTabunganInputStr('10000');
       setStatusInput('sudah_diambil');
       setKeteranganInput('');
@@ -104,6 +107,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
   const handleExecuteSave = () => {
     if (!selectedWargaId) return;
 
+    const numericJimpitan = Number(jimpitanInputStr) || 3000;
     const numericTabungan = Number(tabunganInputStr) || 0;
 
     // Ensure session date & officer are updated
@@ -112,7 +116,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
     savePengambilanWargaItem(
       activeSession.id,
       selectedWargaId,
-      3000,
+      numericJimpitan,
       numericTabungan,
       statusInput,
       keteranganInput
@@ -130,8 +134,9 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
   };
 
   const selectedWargaObj = wargaList.find(w => w.id === selectedWargaId);
+  const currentNumericJimpitan = Number(jimpitanInputStr) || 3000;
   const currentNumericTabungan = Number(tabunganInputStr) || 0;
-  const currentTotalSetoran = (statusInput === 'sudah_diambil' ? 3000 : 0) + (statusInput === 'sudah_diambil' ? currentNumericTabungan : 0);
+  const currentTotalSetoran = (statusInput === 'sudah_diambil' ? currentNumericJimpitan : 0) + (statusInput === 'sudah_diambil' ? currentNumericTabungan : 0);
 
   return (
     <div className="space-y-6 animate-fadeIn pb-24 max-w-4xl mx-auto">
@@ -403,15 +408,51 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Jimpitan Locked Badge */}
-                  <div className="glass-card p-3.5 rounded-2xl border border-emerald-500/30 space-y-1">
-                    <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
-                      Jimpitan Warga (Locked Default)
-                    </label>
-                    <div className="text-xl font-black text-white font-heading">
-                      Rp 3.000
+                  {/* Jimpitan Editable Input (Default Rp3.000, Minimal Rp3.000tetapi boleh lebih) */}
+                  <div className="glass-card p-3.5 rounded-2xl border border-emerald-500/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
+                        Jimpitan Warga (Default Rp3.000, Boleh Lebih)
+                      </label>
                     </div>
-                    <p className="text-[10px] text-gray-400">Otomatis dibagi 50% Pemuda / 50% Dusun saat disahkan</p>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={jimpitanInputStr}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, '');
+                        setJimpitanInputStr(val);
+                      }}
+                      placeholder="Min 3000..."
+                      className="w-full glass-input px-3 py-2 rounded-xl text-base font-bold text-emerald-300 focus:ring-2 focus:ring-emerald-500"
+                    />
+
+                    {/* Quick Jimpitan Chips */}
+                    <div className="flex items-center space-x-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setJimpitanInputStr('3000')}
+                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-900"
+                      >
+                        3rb (Default)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setJimpitanInputStr('5000')}
+                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-800 text-gray-200 hover:bg-gray-700"
+                      >
+                        5rb
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setJimpitanInputStr('10000')}
+                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-800 text-gray-200 hover:bg-gray-700"
+                      >
+                        10rb
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-gray-400">Minimal Rp3.000 (otomatis dibagi 50% Pemuda / 50% Dusun saat disahkan)</p>
                   </div>
 
                   {/* Tabungan Free Input with Smooth Backspace & Keyboard Support */}
