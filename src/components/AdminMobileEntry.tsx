@@ -10,21 +10,23 @@ interface AdminMobileEntryProps {
 export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconcile, onBack }) => {
   const { 
     wargaList, pesertaList, currentPeriode, pengambilanList, 
-    transaksiPengambilanList, savePengambilanWargaItem, updatePengambilanSessionMetadata 
+    transaksiPengambilanList, savePengambilanWargaItem, updatePengambilanSessionMetadata, currentUser 
   } = useApp();
 
   const activeSession = pengambilanList.find(p => p.status === 'berjalan') || pengambilanList[pengambilanList.length - 1];
   const activeParticipants = pesertaList.filter(p => p.periodeId === currentPeriode.id && p.status === 'aktif');
 
+  const defaultOfficer = currentUser ? `${currentUser.name}` : 'Kelompok SATU';
+
   // Metadata session states (Tanggal & Petugas Lapangan - Free Input supported!)
   const [tanggalSesi, setTanggalSesi] = useState<string>(activeSession.tanggalPengambilan || new Date().toISOString().split('T')[0]);
-  const [petugasSesi, setPetugasSesi] = useState<string>(activeSession.petugasLapangan || 'Humam Syarif (Ketua Pemuda)');
+  const [petugasSesi, setPetugasSesi] = useState<string>(activeSession.petugasLapangan || defaultOfficer);
   const [isSavedMetadata, setIsSavedMetadata] = useState<boolean>(false);
 
   useEffect(() => {
     setTanggalSesi(activeSession.tanggalPengambilan || new Date().toISOString().split('T')[0]);
-    setPetugasSesi(activeSession.petugasLapangan || 'Humam Syarif (Ketua Pemuda)');
-  }, [activeSession]);
+    setPetugasSesi(activeSession.petugasLapangan || defaultOfficer);
+  }, [activeSession, currentUser]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'semua' | 'sudah' | 'belum'>('semua');
@@ -201,13 +203,34 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                 
                 {/* Quick Officer Chips */}
                 <div className="flex items-center space-x-1 overflow-x-auto pb-1 text-[10px]">
-                  <span className="text-gray-500 shrink-0">Pilih Cepat:</span>
+                  <span className="text-gray-500 shrink-0">Pilih Kelompok:</span>
                   <button
                     type="button"
-                    onClick={() => setPetugasSesi('Humam Syarif (Ketua Pemuda)')}
-                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0 font-semibold"
+                    onClick={() => setPetugasSesi('Kelompok SATU (Armi, Apep, Fadel, Khabib, Uzik, Ihsan)')}
+                    className="px-2 py-0.5 rounded-lg bg-emerald-950/80 text-emerald-300 hover:text-white shrink-0 font-semibold border border-emerald-500/30"
                   >
-                    Humam (Ketua)
+                    Kelompok SATU
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPetugasSesi('Kelompok DUA (Iwan, Humam, Kusnadi, Feri, Pi\'i, Harno)')}
+                    className="px-2 py-0.5 rounded-lg bg-blue-950/80 text-blue-300 hover:text-white shrink-0 font-semibold border border-blue-500/30"
+                  >
+                    Kelompok DUA
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPetugasSesi('Kelompok TIGA (Zazed, Alfin, Udin, Syahrul, Syarif)')}
+                    className="px-2 py-0.5 rounded-lg bg-amber-950/80 text-amber-300 hover:text-white shrink-0 font-semibold border border-amber-500/30"
+                  >
+                    Kelompok TIGA
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPetugasSesi('Kelompok EMPAT (Dwik, Khoir, Doko, Riski, Rudi, Andri)')}
+                    className="px-2 py-0.5 rounded-lg bg-purple-950/80 text-purple-300 hover:text-white shrink-0 font-semibold border border-purple-500/30"
+                  >
+                    Kelompok EMPAT
                   </button>
                   <button
                     type="button"
@@ -222,34 +245,6 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                     className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0 font-semibold"
                   >
                     Syarif Suharsono
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPetugasSesi('Afif Dwi Cahyo')}
-                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0"
-                  >
-                    Afif
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPetugasSesi('Alvin Pratama')}
-                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0"
-                  >
-                    Alvin
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPetugasSesi('Pawit')}
-                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0"
-                  >
-                    Pawit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPetugasSesi('Khoiruddin')}
-                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0"
-                  >
-                    Khoiruddin
                   </button>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Wallet, Landmark, FileText, UserCheck, 
-  Lock, LogOut, LayoutDashboard, ShieldCheck, Menu, X, ChevronRight, Home, FileSpreadsheet, AlertCircle, Coins 
+  Lock, LogOut, LayoutDashboard, ShieldCheck, Menu, X, ChevronRight, Home, FileSpreadsheet, AlertCircle, Coins, Calendar 
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -16,18 +16,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   
-  // Official Officers List (7 Pengurus Resmi Kiyudan & Petugas Lapangan)
+  // Official Officers List (4 Kelompok Jimpitan & Pengurus Kiyudan)
   const officialOfficers = [
+    { name: 'Kelompok SATU', role: 'Regu 1 (Armi, Apep, Fadel, Khabib, Uzik, Ihsan)' },
+    { name: 'Kelompok DUA', role: 'Regu 2 (Iwan, Humam, Kusnadi, Feri, Pi\'i, Harno)' },
+    { name: 'Kelompok TIGA', role: 'Regu 3 (Zazed, Alfin, Udin, Syahrul, Syarif)' },
+    { name: 'Kelompok EMPAT', role: 'Regu 4 (Dwik, Khoir, Doko, Riski, Rudi, Andri)' },
     { name: 'Slamet Rifaudin', role: 'Super Admin & Petugas Lapangan' },
     { name: 'Humam Syarif', role: 'Ketua Pemuda & Petugas Lapangan' },
     { name: 'Syarif Suharsono', role: 'Bendahara & Petugas Lapangan' },
-    { name: 'Afif Dwi Cahyo', role: 'Pengurus & Petugas Lapangan' },
-    { name: 'Alvin Pratama', role: 'Pengurus & Petugas Lapangan' },
-    { name: 'Pawit', role: 'Pengurus & Petugas Lapangan' },
-    { name: 'Khoiruddin', role: 'Pengurus & Petugas Lapangan' },
   ];
 
-  const [selectedOfficer, setSelectedOfficer] = useState('Slamet Rifaudin');
+  const [selectedOfficer, setSelectedOfficer] = useState('Kelompok SATU');
   const [customUsernameInput, setCustomUsernameInput] = useState('');
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [inputPassword, setInputPassword] = useState('kiyudan123');
@@ -36,6 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
   const navLinks = [
     { id: 'home', label: 'Beranda', icon: Home },
     { id: 'jimpitan', label: 'Jimpitan', icon: Coins },
+    { id: 'jadwal-kelompok', label: 'Jadwal & Kelompok', icon: Calendar },
     { id: 'rekap-warga', label: 'Rekap Setoran Warga', icon: FileSpreadsheet },
     { id: 'tabungan', label: 'Cek Tabungan', icon: Wallet, isSpecial: true },
     { id: 'keuangan', label: 'Kas & Transparansi', icon: Landmark },

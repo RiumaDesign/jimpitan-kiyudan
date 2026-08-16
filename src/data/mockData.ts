@@ -5,13 +5,17 @@ import type {
 } from '../types';
 
 export const MOCK_USERS: User[] = [
-  { id: 1, name: 'Slamet Rifaudin', username: 'slamet rifaudin', role: 'admin' },
-  { id: 2, name: 'Humam Syarif', username: 'humam syarif', role: 'admin' },
-  { id: 3, name: 'Syarif Suharsono', username: 'syarif suharsono', role: 'admin' },
-  { id: 4, name: 'Afif Dwi Cahyo', username: 'afif dwi cahyo', role: 'admin' },
-  { id: 5, name: 'Alvin Pratama', username: 'alvin pratama', role: 'admin' },
-  { id: 6, name: 'Pawit', username: 'pawit', role: 'admin' },
-  { id: 7, name: 'Khoiruddin', username: 'khoiruddin', role: 'admin' },
+  { id: 1, name: 'Kelompok SATU', username: 'kelompok satu', role: 'admin' },
+  { id: 2, name: 'Kelompok DUA', username: 'kelompok dua', role: 'admin' },
+  { id: 3, name: 'Kelompok TIGA', username: 'kelompok tiga', role: 'admin' },
+  { id: 4, name: 'Kelompok EMPAT', username: 'kelompok empat', role: 'admin' },
+  { id: 5, name: 'Slamet Rifaudin', username: 'slamet rifaudin', role: 'admin' },
+  { id: 6, name: 'Humam Syarif', username: 'humam syarif', role: 'admin' },
+  { id: 7, name: 'Syarif Suharsono', username: 'syarif suharsono', role: 'admin' },
+  { id: 8, name: 'Afif Dwi Cahyo', username: 'afif dwi cahyo', role: 'admin' },
+  { id: 9, name: 'Alvin Pratama', username: 'alvin pratama', role: 'admin' },
+  { id: 10, name: 'Pawit', username: 'pawit', role: 'admin' },
+  { id: 11, name: 'Khoiruddin', username: 'khoiruddin', role: 'admin' },
 ];
 
 export const RAW_WARGA_NAMES = [

@@ -9,6 +9,7 @@ import { PublicRekapWarga } from './components/PublicRekapWarga';
 import { PublicSavingsLookup } from './components/PublicSavingsLookup';
 import { PublicKasLedger } from './components/PublicKasLedger';
 import { PublicLaporan } from './components/PublicLaporan';
+import { PublicJadwalKelompok } from './components/PublicJadwalKelompok';
 
 import { AdminDashboard } from './components/AdminDashboard';
 import { AdminMobileEntry } from './components/AdminMobileEntry';
@@ -49,6 +50,8 @@ function MainApp() {
           )}
 
           {activeTab === 'jimpitan' && <PublicJimpitan />}
+
+          {activeTab === 'jadwal-kelompok' && <PublicJadwalKelompok />}
 
           {activeTab === 'rekap-warga' && <PublicRekapWarga />}
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Coins, Wallet, Landmark, Search, ArrowUpRight, 
-  ChevronRight, Sparkles, Megaphone, Clock, ShieldCheck
+  ChevronRight, Sparkles, Megaphone, Clock, ShieldCheck, Calendar, Users 
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { useApp } from '../context/AppContext';
@@ -186,6 +186,37 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ setActiveTab, openSaving
         >
           <Search className="w-4 h-4" />
           <span>Buka Pencarian Tabungan</span>
+        </button>
+      </section>
+
+      {/* JADWAL & KELOMPOK BANNER CARD */}
+      <section className="glass-panel p-6 sm:p-8 rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/40 via-gray-900 to-blue-950/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-2xl">
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <Calendar className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase">
+                4 KELOMPOK REGU KELILING
+              </span>
+              <span className="text-xs text-gray-400">Sabtu / Senin Malam</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-bold text-white font-heading mt-1">
+              Jadwal & Regu Petugas Kelompok Jimpitan
+            </h3>
+            <p className="text-xs text-gray-300 mt-0.5">
+              Cek daftar personil Kelompok SATU, DUA, TIGA, EMPAT & Penasehat Dusun Kiyudan.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setActiveTab('jadwal-kelompok')}
+          className="px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl shadow-emerald-600/30 transition-all flex items-center space-x-2 shrink-0"
+        >
+          <Users className="w-4 h-4" />
+          <span>Lihat Jadwal Lengkap &rarr;</span>
         </button>
       </section>
 
