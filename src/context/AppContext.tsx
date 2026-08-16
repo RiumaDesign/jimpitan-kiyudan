@@ -104,13 +104,25 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+// Ensure old 80-citizen dataset in LocalStorage is cleared so 40-citizen dataset takes effect
+const CURRENT_DATA_VER = 'v40_aug2026_clean';
+if (localStorage.getItem('kiyu_data_ver') !== CURRENT_DATA_VER) {
+  localStorage.removeItem('kiyu_warga');
+  localStorage.removeItem('kiyu_peserta');
+  localStorage.removeItem('kiyu_pengambilan');
+  localStorage.removeItem('kiyu_tx_pengambilan');
+  localStorage.removeItem('kiyu_tx_kas');
+  localStorage.removeItem('kiyu_tx_tabungan');
+  localStorage.setItem('kiyu_data_ver', CURRENT_DATA_VER);
+}
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('kiyu_user');
     return saved ? JSON.parse(saved) : null;
   });
 
-  // LocalStorage-backed state initializers with strict deduplication
+  // LocalStorage-backed state initializers for 40 citizens
   const [periodeList, setPeriodeList] = useState<PeriodePembukuan[]>(() => {
     const saved = localStorage.getItem('kiyu_periode');
     return saved ? JSON.parse(saved) : INITIAL_PERIODE;
@@ -128,7 +140,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : INITIAL_PESERTA;
   });
 
-  // Deduplicate PengambilanList by nomorPengambilan / id
+  // Deduplicate PengambilanList for Sesi 1, 2, 3, 4 in August 2026
   const [pengambilanList, setPengambilanList] = useState<PengambilanMingguan[]>(() => {
     const saved = localStorage.getItem('kiyu_pengambilan');
     const raw: PengambilanMingguan[] = saved ? JSON.parse(saved) : INITIAL_PENGAMBILAN;
@@ -138,7 +150,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!map.has(item.nomorPengambilan)) {
         map.set(item.nomorPengambilan, item);
       } else {
-        // Keep whichever item has higher totalSudahDiambil or disahkan status
         const existing = map.get(item.nomorPengambilan)!;
         if (item.totalSudahDiambil >= existing.totalSudahDiambil) {
           map.set(item.nomorPengambilan, item);
@@ -148,7 +159,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return Array.from(map.values()).sort((a, b) => a.nomorPengambilan - b.nomorPengambilan);
   });
 
-  // Deduplicate TransaksiPengambilanList by composite key (pengambilanId_wargaId)
+  // TransaksiPengambilanList mapped to 40 citizens for Sesi #4 (Agustus 2026)
   const [transaksiPengambilanList, setTransaksiPengambilanList] = useState<TransaksiPengambilan[]>(() => {
     const saved = localStorage.getItem('kiyu_tx_pengambilan');
     let raw: TransaksiPengambilan[] = [];
@@ -157,7 +168,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else {
       let idCounter = 1;
       INITIAL_WARGA.forEach((w, idx) => {
-        const isTaken = idx < 68;
+        const isTaken = idx < 32; // 32 taken out of 40
         raw.push({
           id: idCounter++,
           pengambilanId: 4,
