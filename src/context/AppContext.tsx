@@ -3,10 +3,10 @@ import confetti from 'canvas-confetti';
 import type {
   User, Warga, PeriodePembukuan, PesertaPembukuan, PengambilanMingguan,
   TransaksiPengambilan, TransaksiTabungan, TransaksiKas,
-  Pengumuman, AuditLog
+  Pengumuman, AuditLog, KelompokJimpitan, PenasehatDusun
 } from '../types';
 import {
-  MOCK_USERS, INITIAL_WARGA, INITIAL_PERIODE, INITIAL_PESERTA,
+  MOCK_USERS, MOCK_KELOMPOK, MOCK_PENASEHAT, INITIAL_WARGA, INITIAL_PERIODE, INITIAL_PESERTA,
   INITIAL_PENGAMBILAN, INITIAL_TRANSAKSI_KAS,
   INITIAL_TABUNGAN_TRANSAKSI, INITIAL_PENGUMUMAN, INITIAL_AUDIT_LOGS
 } from '../data/mockData';
@@ -15,6 +15,9 @@ interface AppContextType {
   currentUser: User | null;
   login: (username: string, password?: string) => { success: boolean; message?: string };
   logout: () => void;
+
+  kelompokList: KelompokJimpitan[];
+  penasehatList: PenasehatDusun[];
 
   periodeList: PeriodePembukuan[];
   currentPeriode: PeriodePembukuan;
@@ -53,6 +56,12 @@ interface AppContextType {
     petugasLapangan: string
   ) => void;
 
+  tundaPengambilanJadwal: (
+    pengambilanId: number,
+    alasan: string,
+    tanggalRealisasi: string
+  ) => void;
+
   rekonsiliasiSahkanPengambilan: (
     pengambilanId: number,
     uangFisik: number,
@@ -81,7 +90,6 @@ interface AppContextType {
   ) => void;
 
   togglePesertaStatus: (wargaId: number, status: 'aktif' | 'nonaktif') => void;
-
   createNewPeriodWizard: (
     tahun: number,
     namaPeriode: string,
@@ -100,27 +108,19 @@ interface AppContextType {
   createPengambilanMingguanBaru: () => PengambilanMingguan;
   exportDatabaseBackup: () => void;
   importDatabaseBackup: (jsonStr: string) => boolean;
+  resetDatabaseToDefaults: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-
-// Ensure old 80-citizen dataset in LocalStorage is cleared so 40-citizen dataset takes effect
-const CURRENT_DATA_VER = 'v40_aug2026_clean';
-if (localStorage.getItem('kiyu_data_ver') !== CURRENT_DATA_VER) {
-  localStorage.removeItem('kiyu_warga');
-  localStorage.removeItem('kiyu_peserta');
-  localStorage.removeItem('kiyu_pengambilan');
-  localStorage.removeItem('kiyu_tx_pengambilan');
-  localStorage.removeItem('kiyu_tx_kas');
-  localStorage.removeItem('kiyu_tx_tabungan');
-  localStorage.setItem('kiyu_data_ver', CURRENT_DATA_VER);
-}
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('kiyu_user');
     return saved ? JSON.parse(saved) : null;
   });
+
+  const [kelompokList] = useState<KelompokJimpitan[]>(MOCK_KELOMPOK);
+  const [penasehatList] = useState<PenasehatDusun[]>(MOCK_PENASEHAT);
 
   // LocalStorage-backed state initializers for 40 citizens
   const [periodeList, setPeriodeList] = useState<PeriodePembukuan[]>(() => {
@@ -140,23 +140,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : INITIAL_PESERTA;
   });
 
-  // Deduplicate PengambilanList for Sesi 1, 2, 3, 4 in August 2026
+  // Deduplicate PengambilanList for rotating 4 groups schedule in August 2026
   const [pengambilanList, setPengambilanList] = useState<PengambilanMingguan[]>(() => {
     const saved = localStorage.getItem('kiyu_pengambilan');
     const raw: PengambilanMingguan[] = saved ? JSON.parse(saved) : INITIAL_PENGAMBILAN;
     
     const map = new Map<number, PengambilanMingguan>();
     raw.forEach(item => {
-      if (!map.has(item.nomorPengambilan)) {
-        map.set(item.nomorPengambilan, item);
+      if (!map.has(item.id)) {
+        map.set(item.id, item);
       } else {
-        const existing = map.get(item.nomorPengambilan)!;
+        const existing = map.get(item.id)!;
         if (item.totalSudahDiambil >= existing.totalSudahDiambil) {
-          map.set(item.nomorPengambilan, item);
+          map.set(item.id, item);
         }
       }
     });
-    return Array.from(map.values()).sort((a, b) => a.nomorPengambilan - b.nomorPengambilan);
+    return Array.from(map.values()).sort((a, b) => a.id - b.id);
   });
 
   // TransaksiPengambilanList mapped to 40 citizens for Sesi #1, #2, #3, and #4 (Agustus 2026)
@@ -171,11 +171,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     let idCounter = 1000;
-    // Ensure all 4 sessions (Sesi 1, 2, 3, 4) have baseline entries for all 40 citizens
+    // Ensure all 4 schedule weeks have baseline entries for all 40 citizens
     const sessionConfigs = [
       { id: 1, date: '2026-08-01 20:00:00', allTaken: true },
       { id: 2, date: '2026-08-08 20:00:00', allTaken: true },
-      { id: 3, date: '2026-08-15 20:00:00', allTaken: true },
+      { id: 3, date: '2026-08-16 20:00:00', allTaken: true },
       { id: 4, date: '2026-08-22 20:00:00', allTaken: false },
     ];
 
@@ -267,13 +267,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'Password salah! Password resmi pengurus adalah: kiyudan123' };
     }
 
-    // Match against official 7 officers list or gemuk ireng alias
+    // Match against official groups or officers
     let matchedUser = MOCK_USERS.find(
       u => u.username.toLowerCase() === cleanUser || u.name.toLowerCase() === cleanUser
     );
 
     if (!matchedUser && (cleanUser === 'gemuk ireng' || cleanUser === 'gemukireng' || cleanUser === 'admin')) {
-      matchedUser = MOCK_USERS[0]; // Slamet Rifaudin
+      matchedUser = MOCK_USERS[0];
     }
 
     if (matchedUser) {
@@ -283,7 +283,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: true };
     }
 
-    // Allow custom officer name if password kiyudan123 is valid
     const customUser: User = {
       id: Date.now(),
       name: username.trim(),
@@ -292,13 +291,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setCurrentUser(customUser);
     localStorage.setItem('kiyu_user', JSON.stringify(customUser));
-    addLog('LOGIN', 'Autentikasi Pengurus', `Pengurus ${customUser.name} berhasil login.`);
+    addLog('LOGIN', 'Autentikasi Pengurus', `Pengurus ${username} berhasil login.`);
     return { success: true };
   };
 
   const logout = () => {
     if (currentUser) {
-      addLog('LOGOUT', 'Autentikasi', `User ${currentUser.name} logout.`);
+      addLog('LOGOUT', 'Autentikasi Pengurus', `Pengurus ${currentUser.name} keluar.`);
     }
     setCurrentUser(null);
     localStorage.removeItem('kiyu_user');
@@ -362,9 +361,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return p;
     }));
     addLog(
-      'UPDATE_METADATA_SESI',
-      'Pengambilan Mingguan',
-      `Mengubah Tanggal/Petugas Sesi #${pengambilanId}: Tanggal=${tanggalPengambilan}, Petugas=${petugasLapangan}`
+      'UPDATE_METADATA_JADWAL',
+      'Jadwal Jimpitan',
+      `Mengubah Tanggal/Petugas Jadwal #${pengambilanId}: Tanggal=${tanggalPengambilan}, Petugas=${petugasLapangan}`
+    );
+  };
+
+  const tundaPengambilanJadwal = (
+    pengambilanId: number,
+    alasan: string,
+    tanggalRealisasi: string
+  ) => {
+    setPengambilanList(prev => prev.map(p => {
+      if (p.id === pengambilanId) {
+        return {
+          ...p,
+          isDitunda: true,
+          alasanPenundaan: alasan,
+          tanggalPengambilan: tanggalRealisasi,
+          hariPengambilan: 'Malam Senin (Ditunda Hujan/Berhalangan)',
+          catatan: `Jadwal dialihkan ke ${tanggalRealisasi} karena ${alasan}.`,
+        };
+      }
+      return p;
+    }));
+
+    const target = pengambilanList.find(p => p.id === pengambilanId);
+    addLog(
+      'TUNDA_JADWAL',
+      'Jadwal Jimpitan',
+      `Penundaan Jadwal ${target?.petugasLapangan || 'Kelompok'}: Dialihkan ke ${tanggalRealisasi} (${alasan})`
     );
   };
 
@@ -426,7 +452,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     catatan?: string
   ) => {
     const targetSession = pengambilanList.find(p => p.id === pengambilanId);
-    if (!targetSession) return { success: false, selisih: 0, message: 'Sesi pengambilan tidak ditemukan' };
+    if (!targetSession) return { success: false, selisih: 0, message: 'Jadwal pengambilan tidak ditemukan' };
 
     const sessionTxItems = transaksiPengambilanList.filter(t => t.pengambilanId === pengambilanId && t.status === 'sudah_diambil');
     const realJimpitan = sessionTxItems.length > 0 ? sessionTxItems.reduce((acc, t) => acc + (t.jimpitan || 0), 0) : targetSession.totalJimpitan;
@@ -446,7 +472,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       kategoriNama: 'Jimpitan Mingguan',
       tanggal: targetSession.tanggalPengambilan,
       nominal: splitNominal,
-      keterangan: `Pembagian 50% Jimpitan Pengambilan Sesi #${targetSession.nomorPengambilan} (Petugas: ${targetSession.petugasLapangan || 'Petugas Lapangan'})`,
+      keterangan: `Pembagian 50% Jimpitan — ${targetSession.petugasLapangan || 'Kelompok Petugas'} (${targetSession.tanggalPengambilan})`,
       createdBy: currentUser ? currentUser.name : 'System',
       createdAt: now,
     };
@@ -460,7 +486,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       kategoriNama: 'Jimpitan Mingguan',
       tanggal: targetSession.tanggalPengambilan,
       nominal: splitNominal,
-      keterangan: `Pembagian 50% Jimpitan Pengambilan Sesi #${targetSession.nomorPengambilan} (Petugas: ${targetSession.petugasLapangan || 'Petugas Lapangan'})`,
+      keterangan: `Pembagian 50% Jimpitan — ${targetSession.petugasLapangan || 'Kelompok Petugas'} (${targetSession.tanggalPengambilan})`,
       createdBy: currentUser ? currentUser.name : 'System',
       createdAt: now,
     };
@@ -473,18 +499,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       pengambilanId,
       jenis: 'setoran',
       nominal: t.tabungan,
-      keterangan: `Setoran Tabungan Pengambilan Minggu #${targetSession.nomorPengambilan} (${targetSession.tanggalPengambilan})`,
+      keterangan: `Setoran Tabungan — ${targetSession.petugasLapangan || 'Kelompok Petugas'} (${targetSession.tanggalPengambilan})`,
       createdAt: now,
       createdBy: currentUser ? currentUser.name : 'System',
     }));
 
-    // Prevent duplicate kas entries for the same session
+    // Prevent duplicate kas entries for the same duty date
     setTransaksiKasList(prev => {
-      const cleaned = prev.filter(t => !(t.periodeId === targetSession.periodeId && t.kategoriId === 1 && t.keterangan.includes(`Sesi #${targetSession.nomorPengambilan}`)));
+      const cleaned = prev.filter(t => !(t.periodeId === targetSession.periodeId && t.kategoriId === 1 && t.keterangan.includes(targetSession.tanggalPengambilan)));
       return [kasPemudaTx, kasDusunTx, ...cleaned];
     });
 
-    // Prevent duplicate tabungan entries for the same session
+    // Prevent duplicate tabungan entries for the same duty date
     setTransaksiTabunganList(prev => {
       const cleaned = prev.filter(t => t.pengambilanId !== pengambilanId);
       return [...newSavingsItems, ...cleaned];
@@ -497,35 +523,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           status: selisih === 0 ? 'disahkan' : 'ada_selisih',
           uangFisik,
           selisih,
-          catatan,
+          catatan: catatan || (selisih === 0 ? 'Uang fisik cocok 100% dan sudah disahkan.' : `Selisih Rp${selisih.toLocaleString('id-ID')}`),
           tanggalDisahkan: now,
-          disahkanOleh: currentUser ? currentUser.name : 'Admin',
+          disahkanOleh: currentUser ? currentUser.name : 'Bendahara',
         };
       }
       return p;
     }));
 
-    try {
+    addLog(
+      'REKONSILIASI_PENGESAHAN',
+      'Pengesahan Bendahara',
+      `Mengesahkan Tugas ${targetSession.petugasLapangan}: Total Sistem=Rp${totalSystem.toLocaleString('id-ID')}, Fisik=Rp${uangFisik.toLocaleString('id-ID')}, Selisih=Rp${selisih.toLocaleString('id-ID')}`
+    );
+
+    if (selisih === 0) {
       confetti({
-        particleCount: 100,
+        particleCount: 80,
         spread: 70,
         origin: { y: 0.6 }
       });
-    } catch {
-      // fallback
     }
-
-    addLog(
-      'REKONSILIASI_PENGESAHAN',
-      'Pengambilan Mingguan',
-      `Mengesahkan Sesi #${targetSession.nomorPengambilan} Tanggal ${targetSession.tanggalPengambilan} (Petugas: ${targetSession.petugasLapangan || 'Petugas Lapangan'}, Uang Fisik: Rp${uangFisik.toLocaleString('id-ID')}, Selisih: Rp${selisih.toLocaleString('id-ID')})`
-    );
 
     return {
       success: true,
       selisih,
       message: selisih === 0 
-        ? 'Sesi Pengambilan Berhasil Disahkan & Split 50:50 Jimpitan Sukses!'
+        ? 'Jadwal Pengambilan Berhasil Disahkan & Split 50:50 Jimpitan Sukses!'
         : `Pengambilan Disahkan dengan catatan SELISIH (Rp${selisih.toLocaleString('id-ID')}).`
     };
   };
@@ -754,7 +778,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   };
 
-  // Safe Session Creation: Reuse active session or create next session number without duplicates
+  // Safe Rotating 4-Group Assignment: Satu -> Dua -> Tiga -> Empat -> Satu...
   const createPengambilanMingguanBaru = (): PengambilanMingguan => {
     const activeSession = pengambilanList.find(p => p.status === 'berjalan');
     if (activeSession) {
@@ -771,13 +795,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const maxNum = pengambilanList.reduce((max, p) => Math.max(max, p.nomorPengambilan), 0);
     const newSessionNum = maxNum + 1;
     const today = new Date().toISOString().split('T')[0];
-    const rotatingOfficer = KELOMPOK_ROSTER[(newSessionNum - 1) % 4];
+    const groupIdx = (newSessionNum - 1) % 4;
+    const rotatingOfficer = KELOMPOK_ROSTER[groupIdx];
 
     const newSession: PengambilanMingguan = {
       id: Date.now(),
       periodeId: currentPeriode.id,
       nomorPengambilan: newSessionNum,
+      tanggalJadwal: today,
       tanggalPengambilan: today,
+      hariPengambilan: 'Malam Minggu',
+      isDitunda: false,
+      kelompokId: groupIdx + 1,
+      namaKelompok: `Kelompok ${['SATU', 'DUA', 'TIGA', 'EMPAT'][groupIdx]}`,
       status: 'berjalan',
       totalWarga: pesertaList.filter(p => p.periodeId === currentPeriode.id && p.status === 'aktif').length,
       totalSudahDiambil: 0,
@@ -801,7 +831,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const exportDatabaseBackup = () => {
     const data = {
-      version: '1.0',
+      version: '2.0',
       exportedAt: new Date().toISOString(),
       wargaList,
       pesertaList,
@@ -842,12 +872,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const resetDatabaseToDefaults = () => {
+    localStorage.removeItem('kiyu_periode');
+    localStorage.removeItem('kiyu_warga');
+    localStorage.removeItem('kiyu_peserta');
+    localStorage.removeItem('kiyu_pengambilan');
+    localStorage.removeItem('kiyu_tx_pengambilan');
+    localStorage.removeItem('kiyu_tx_kas');
+    localStorage.removeItem('kiyu_tx_tabungan');
+    localStorage.removeItem('kiyu_audit');
+
+    setPeriodeList(INITIAL_PERIODE);
+    setWargaList(INITIAL_WARGA);
+    setPesertaList(INITIAL_PESERTA);
+    setPengambilanList(INITIAL_PENGAMBILAN);
+    setTransaksiKasList(INITIAL_TRANSAKSI_KAS);
+    setTransaksiTabunganList(INITIAL_TABUNGAN_TRANSAKSI);
+    setAuditLogs(INITIAL_AUDIT_LOGS);
+
+    // Reinitialize 4 sessions transactions
+    let idCounter = 1000;
+    const raw: TransaksiPengambilan[] = [];
+    const sessionConfigs = [
+      { id: 1, date: '2026-08-01 20:00:00', allTaken: true },
+      { id: 2, date: '2026-08-08 20:00:00', allTaken: true },
+      { id: 3, date: '2026-08-16 20:00:00', allTaken: true },
+      { id: 4, date: '2026-08-22 20:00:00', allTaken: false },
+    ];
+    sessionConfigs.forEach(cfg => {
+      INITIAL_WARGA.forEach((w, idx) => {
+        const isTaken = cfg.allTaken || (idx < 32);
+        const tabunganNominal = isTaken ? (idx % 3 === 0 ? 20000 : idx % 2 === 0 ? 10000 : 5000) : 0;
+        const jimpitanNominal = isTaken ? 3000 : 0;
+        raw.push({
+          id: idCounter++,
+          pengambilanId: cfg.id,
+          wargaId: w.id,
+          jimpitan: jimpitanNominal,
+          tabungan: tabunganNominal,
+          total: jimpitanNominal + tabunganNominal,
+          status: isTaken ? 'sudah_diambil' : 'belum_dikunjungi',
+          waktuPengambilan: isTaken ? cfg.date : undefined,
+        });
+      });
+    });
+    setTransaksiPengambilanList(raw);
+
+    addLog('RESET_DATABASE', 'Sistem Database', 'Mereset database ke struktur baku 4 kelompok & 40 warga.');
+  };
+
   return (
     <AppContext.Provider
       value={{
         currentUser,
         login,
         logout,
+        kelompokList,
+        penasehatList,
         periodeList,
         currentPeriode,
         wargaList,
@@ -864,6 +945,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getTotalTabunganDusun,
         savePengambilanWargaItem,
         updatePengambilanSessionMetadata,
+        tundaPengambilanJadwal,
         rekonsiliasiSahkanPengambilan,
         addTransaksiKasItem,
         addWargaItem,
@@ -876,6 +958,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createPengambilanMingguanBaru,
         exportDatabaseBackup,
         importDatabaseBackup,
+        resetDatabaseToDefaults,
       }}
     >
       {children}

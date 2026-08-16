@@ -14,7 +14,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab, op
   const { 
     currentUser, currentPeriode, getSaldoKasPemuda, 
     getSaldoKasDusun, getTotalTabunganDusun, pengambilanList, transaksiPengambilanList, auditLogs,
-    exportDatabaseBackup, importDatabaseBackup
+    exportDatabaseBackup, importDatabaseBackup, resetDatabaseToDefaults
   } = useApp();
 
   const [importStatus, setImportStatus] = useState<string | null>(null);
@@ -154,7 +154,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab, op
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 shrink-0">
+          <div className="flex items-center space-x-2 shrink-0 flex-wrap gap-2">
+            <button
+              onClick={() => {
+                if (window.confirm('Apakah Anda yakin ingin mereset database ke struktur baku 4 kelompok & 40 warga?')) {
+                  resetDatabaseToDefaults();
+                  setImportStatus('Database berhasil direset ke struktur baku 4 kelompok & 40 KK!');
+                  setTimeout(() => setImportStatus(null), 3500);
+                }
+              }}
+              className="px-4 py-2.5 rounded-xl font-bold text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition-all flex items-center space-x-1.5"
+            >
+              <span>🔄 Reset Data Baku</span>
+            </button>
+
             <button
               onClick={exportDatabaseBackup}
               className="px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 transition-all flex items-center space-x-1.5"

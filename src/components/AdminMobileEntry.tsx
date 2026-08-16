@@ -13,7 +13,8 @@ interface AdminMobileEntryProps {
 export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconcile, onBack }) => {
   const { 
     wargaList, pesertaList, currentPeriode, pengambilanList, 
-    transaksiPengambilanList, savePengambilanWargaItem, updatePengambilanSessionMetadata, currentUser 
+    transaksiPengambilanList, savePengambilanWargaItem, updatePengambilanSessionMetadata, 
+    tundaPengambilanJadwal, currentUser 
   } = useApp();
 
   const [selectedSessionId, setSelectedSessionId] = useState<number>(() => {
@@ -31,6 +32,15 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
   const [petugasSesi, setPetugasSesi] = useState<string>(activeSession.petugasLapangan || defaultOfficer);
   const [showMetadataPanel, setShowMetadataPanel] = useState<boolean>(false);
   const [isSavedMetadata, setIsSavedMetadata] = useState<boolean>(false);
+
+  // Penundaan Hujan / Berhalangan State
+  const [showTundaModal, setShowTundaModal] = useState<boolean>(false);
+  const [alasanTunda, setAlasanTunda] = useState<string>('Hujan Deras Malam Minggu');
+  const [tanggalRealisasiTunda, setTanggalRealisasiTunda] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  });
 
   useEffect(() => {
     if (activeSession) {
@@ -200,13 +210,22 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
             </div>
           </div>
 
-          <button
-            onClick={() => setShowMetadataPanel(!showMetadataPanel)}
-            className="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-gray-300 hover:text-white border border-gray-800 flex items-center space-x-1.5 shrink-0"
-          >
-            <span>{showMetadataPanel ? 'Tutup Pengaturan' : '⚙️ Pengaturan Regu & Tanggal'}</span>
-            {showMetadataPanel ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowTundaModal(true)}
+              className="px-3 py-2 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center space-x-1.5 shrink-0 transition-colors"
+            >
+              <span>🌧️ Tunda Jadwal (Hujan)</span>
+            </button>
+
+            <button
+              onClick={() => setShowMetadataPanel(!showMetadataPanel)}
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-gray-300 hover:text-white border border-gray-800 flex items-center space-x-1.5 shrink-0"
+            >
+              <span>{showMetadataPanel ? 'Tutup Pengaturan' : '⚙️ Pengaturan Regu'}</span>
+              {showMetadataPanel ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
 
         {/* Collapsible Metadata Form */}
@@ -747,6 +766,82 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL: TUNDA PENGAMBILAN (HUJAN / BERHALANGAN) */}
+      {showTundaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-amber-500/40 max-w-md w-full shadow-2xl space-y-4 bg-gray-950">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
+                <span className="text-2xl">🌧️</span>
+                <div>
+                  <h3 className="text-base font-bold text-white font-heading">
+                    Tunda Pengambilan Jimpitan
+                  </h3>
+                  <p className="text-[11px] text-gray-400">Pengalihan jadwal karena hujan / berhalangan</p>
+                </div>
+              </div>
+              <button onClick={() => setShowTundaModal(false)} className="p-2 rounded-xl text-gray-400 hover:text-white bg-gray-900">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-1">
+              <p className="font-bold">⚠️ Sesuai Aturan Sistem Baku Dusun Kiyudan:</p>
+              <p className="text-[11px] text-gray-300 leading-relaxed">
+                Penundaan ke <b>Malam Senin</b> dilakukan oleh <b>kelompok yang sama ({petugasSesi.split('(')[0]})</b> dan <b>tidak akan mengubah urutan rotasi</b> kelompok pada minggu berikutnya.
+              </p>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-gray-300 font-bold mb-1">Alasan Penundaan:</label>
+                <select
+                  value={alasanTunda}
+                  onChange={(e) => setAlasanTunda(e.target.value)}
+                  className="w-full glass-input px-3.5 py-2.5 rounded-xl bg-gray-900 text-white border border-gray-800 font-semibold"
+                >
+                  <option value="Hujan Deras Malam Minggu">🌧️ Hujan Deras Malam Minggu</option>
+                  <option value="Anggota Regu Lapangan Berhalangan">👥 Anggota Regu Lapangan Berhalangan</option>
+                  <option value="Kegiatan Dusun / Takziah / Hal Mendesak">⚠️ Kegiatan Dusun / Kondisi Lain</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-bold mb-1">Tanggal Realisasi Pengambilan (Malam Senin):</label>
+                <input
+                  type="date"
+                  value={tanggalRealisasiTunda}
+                  onChange={(e) => setTanggalRealisasiTunda(e.target.value)}
+                  className="w-full glass-input px-3.5 py-2.5 rounded-xl bg-gray-900 text-amber-300 border border-gray-800 font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowTundaModal(false)}
+                className="py-2.5 rounded-xl font-bold text-xs bg-gray-900 text-gray-400 hover:text-white"
+              >
+                Batal
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  tundaPengambilanJadwal(activeSession.id, alasanTunda, tanggalRealisasiTunda);
+                  setTanggalSesi(tanggalRealisasiTunda);
+                  setShowTundaModal(false);
+                }}
+                className="py-2.5 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-gray-950 shadow-lg shadow-amber-500/30 flex items-center justify-center space-x-1.5"
+              >
+                <span>🌧️ Tunda ke Malam Senin</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

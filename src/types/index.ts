@@ -18,6 +18,23 @@ export interface Warga {
   status: 'aktif' | 'nonaktif';
 }
 
+export interface KelompokJimpitan {
+  id: number;
+  kodeKelompok: string;
+  namaKelompok: string;
+  urutan: number;
+  jumlahAnggota: number;
+  anggota: string[];
+  status: 'aktif' | 'nonaktif';
+}
+
+export interface PenasehatDusun {
+  id: number;
+  nama: string;
+  jabatan: string;
+  status: 'aktif';
+}
+
 export interface PeriodePembukuan {
   id: number;
   namaPeriode: string;
@@ -40,13 +57,19 @@ export interface PesertaPembukuan {
   tanggalKeluar?: string;
 }
 
-export type StatusPengambilanSesi = 'draft' | 'berjalan' | 'selesai_pengambilan' | 'rekonsiliasi' | 'disahkan' | 'ada_selisih';
+export type StatusPengambilanSesi = 'draft' | 'berjalan' | 'selesai_pengambilan' | 'rekonsiliasi' | 'disahkan' | 'ada_selisih' | 'ditunda_hujan';
 
 export interface PengambilanMingguan {
   id: number;
   periodeId: number;
   nomorPengambilan: number;
-  tanggalPengambilan: string;
+  tanggalJadwal?: string;
+  tanggalPengambilan: string; // Tanggal Realisasi
+  hariPengambilan?: string; // 'Malam Minggu' | 'Malam Senin'
+  isDitunda?: boolean;
+  alasanPenundaan?: string;
+  kelompokId?: number;
+  namaKelompok?: string;
   status: StatusPengambilanSesi;
   totalWarga: number;
   totalSudahDiambil: number;

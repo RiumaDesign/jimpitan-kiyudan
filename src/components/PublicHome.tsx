@@ -145,7 +145,7 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ setActiveTab, openSaving
             Rp {totalTabungan.toLocaleString('id-ID')}
           </p>
           <div className="mt-2 flex items-center justify-between text-xs">
-            <span className="text-gray-400">80 Warga Terdaftar</span>
+            <span className="text-gray-400">40 KK Warga Kiyudan</span>
             <button onClick={openSavingsModal} className="text-amber-400 font-semibold hover:underline">
               Cek Pribadi &rarr;
             </button>
@@ -161,10 +161,10 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ setActiveTab, openSaving
             </div>
           </div>
           <p className="text-2xl sm:text-3xl font-black text-white font-heading mt-3">
-            100% Audit Log
+            100% Transparan
           </p>
           <div className="mt-2 flex items-center text-xs text-purple-300 space-x-1">
-            <span>Transaksi Terverifikasi</span>
+            <span>4 Kelompok Bergiliran</span>
           </div>
         </div>
       </section>
@@ -249,26 +249,26 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ setActiveTab, openSaving
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1f293d" />
-                <XAxis dataKey="bulan" stroke="#6b7280" tick={{ fontSize: 12 }} />
-                <YAxis stroke="#6b7280" tick={{ fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.5} />
+                <XAxis dataKey="bulan" stroke="#9ca3af" fontSize={11} tickLine={false} />
+                <YAxis stroke="#9ca3af" fontSize={11} tickLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '12px' }}
-                  formatter={(value: any) => [`Rp ${(Number(value) || 0).toFixed(1)} Juta`, '']}
+                  contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '0.75rem', fontSize: '12px' }}
+                  formatter={(val: any) => [`Rp ${(Number(val) * 1000000).toLocaleString('id-ID')}`, '']}
                 />
-                <Area type="monotone" dataKey="kasPemuda" name="Kas Pemuda" stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorPemuda)" />
-                <Area type="monotone" dataKey="kasDusun" name="Kas Dusun" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorDusun)" />
+                <Area type="monotone" dataKey="kasPemuda" name="Kas Pemuda" stroke="#3b82f6" fillOpacity={1} fill="url(#colorPemuda)" />
+                <Area type="monotone" dataKey="kasDusun" name="Kas Dusun" stroke="#10b981" fillOpacity={1} fill="url(#colorDusun)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Latest Session Card */}
+        {/* Latest Duty Card */}
         <div className="glass-panel p-6 rounded-3xl border border-gray-800 flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between">
               <span className="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                PENGAMBILAN TERBARU
+                PENGAMBILAN BERIKUTNYA / TERBARU
               </span>
               <span className="text-xs text-gray-400 flex items-center space-x-1">
                 <Clock className="w-3.5 h-3.5" />
@@ -276,38 +276,44 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ setActiveTab, openSaving
               </span>
             </div>
 
-            <h3 className="text-xl font-bold text-white font-heading">
-              Sesi #{latestSession?.nomorPengambilan} (Sabtu Malam)
+            <h3 className="text-xl font-bold text-white font-heading mt-2">
+              {latestSession?.petugasLapangan || 'Kelompok SATU'}
             </h3>
             <p className="text-xs text-gray-400 mt-1">
-              Status Sesi: <span className="text-amber-400 capitalize font-semibold">{latestSession?.status.replace('_', ' ')}</span>
+              Tanggal Tugas: <span className="text-amber-400 font-semibold">{latestSession?.tanggalPengambilan} ({latestSession?.hariPengambilan || 'Malam Minggu'})</span>
             </p>
 
-            <div className="mt-5 space-y-3">
+            {latestSession?.isDitunda && (
+              <div className="mt-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                ⚠️ <b>Info Penundaan:</b> {latestSession.alasanPenundaan || 'Ditunda karena hujan'}. Realisasi: <b>{latestSession.tanggalPengambilan}</b>.
+              </div>
+            )}
+
+            <div className="mt-4 space-y-2.5">
               <div className="flex justify-between items-center text-xs p-2.5 rounded-xl bg-gray-900/60 border border-gray-800">
-                <span className="text-gray-400">Total Terdaftar</span>
-                <span className="font-bold text-white">{latestSession?.totalWarga} Warga</span>
+                <span className="text-gray-400">Total Warga Dusun</span>
+                <span className="font-bold text-white">{latestSession?.totalWarga || 40} KK</span>
               </div>
               <div className="flex justify-between items-center text-xs p-2.5 rounded-xl bg-gray-900/60 border border-gray-800">
                 <span className="text-gray-400">Sudah Diambil</span>
-                <span className="font-bold text-emerald-400">{latestSession?.totalSudahDiambil} Warga ({Math.round((latestSession?.totalSudahDiambil || 0) / (latestSession?.totalWarga || 1) * 100)}%)</span>
+                <span className="font-bold text-emerald-400">{latestSession?.totalSudahDiambil || 0} Warga ({Math.round(((latestSession?.totalSudahDiambil || 0) / (latestSession?.totalWarga || 40)) * 100)}%)</span>
               </div>
               <div className="flex justify-between items-center text-xs p-2.5 rounded-xl bg-gray-900/60 border border-gray-800">
-                <span className="text-gray-400">Total Jimpitan (Rp3k)</span>
-                <span className="font-bold text-amber-400">Rp {latestSession?.totalJimpitan.toLocaleString('id-ID')}</span>
+                <span className="text-gray-400">Total Jimpitan</span>
+                <span className="font-bold text-amber-400">Rp {(latestSession?.totalJimpitan || 0).toLocaleString('id-ID')}</span>
               </div>
               <div className="flex justify-between items-center text-xs p-2.5 rounded-xl bg-gray-900/60 border border-gray-800">
-                <span className="text-gray-400">Total Tabungan Sesi</span>
-                <span className="font-bold text-blue-400">Rp {latestSession?.totalTabungan.toLocaleString('id-ID')}</span>
+                <span className="text-gray-400">Total Tabungan</span>
+                <span className="font-bold text-blue-400">Rp {(latestSession?.totalTabungan || 0).toLocaleString('id-ID')}</span>
               </div>
             </div>
           </div>
 
           <button
             onClick={() => setActiveTab('jimpitan')}
-            className="w-full py-3 rounded-xl text-xs font-bold text-center bg-gray-800 hover:bg-gray-700 text-gray-200 transition-colors border border-gray-700"
+            className="w-full py-3 rounded-xl text-xs font-bold text-center bg-gray-800 hover:bg-gray-700 text-gray-200 transition-colors border border-gray-700 mt-3"
           >
-            Lihat Rekap Seluruh Sesi
+            Lihat Rincian Setoran 40 KK &rarr;
           </button>
         </div>
 

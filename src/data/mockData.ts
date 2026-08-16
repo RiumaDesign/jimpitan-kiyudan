@@ -1,7 +1,7 @@
 import type { 
   Warga, PeriodePembukuan, PesertaPembukuan, PengambilanMingguan, 
   TransaksiTabungan, TransaksiKas, KategoriKeuangan, 
-  Pengumuman, AuditLog, User 
+  Pengumuman, AuditLog, User, KelompokJimpitan, PenasehatDusun 
 } from '../types';
 
 export const MOCK_USERS: User[] = [
@@ -16,6 +16,52 @@ export const MOCK_USERS: User[] = [
   { id: 9, name: 'Alvin Pratama', username: 'alvin pratama', role: 'admin' },
   { id: 10, name: 'Pawit', username: 'pawit', role: 'admin' },
   { id: 11, name: 'Khoiruddin', username: 'khoiruddin', role: 'admin' },
+];
+
+export const MOCK_KELOMPOK: KelompokJimpitan[] = [
+  {
+    id: 1,
+    kodeKelompok: 'KLP-01',
+    namaKelompok: 'Kelompok SATU',
+    urutan: 1,
+    jumlahAnggota: 6,
+    anggota: ['Armi', 'Apep', 'Fadel', 'Khabib', 'Uzik', 'Ihsan'],
+    status: 'aktif',
+  },
+  {
+    id: 2,
+    kodeKelompok: 'KLP-02',
+    namaKelompok: 'Kelompok DUA',
+    urutan: 2,
+    jumlahAnggota: 6,
+    anggota: ['Iwan', 'Humam', 'Kusnadi', 'Feri', 'Pi\'i', 'Harno'],
+    status: 'aktif',
+  },
+  {
+    id: 3,
+    kodeKelompok: 'KLP-03',
+    namaKelompok: 'Kelompok TIGA',
+    urutan: 3,
+    jumlahAnggota: 5,
+    anggota: ['Zazed', 'Alfin', 'Udin', 'Syahrul', 'Syarif'],
+    status: 'aktif',
+  },
+  {
+    id: 4,
+    kodeKelompok: 'KLP-04',
+    namaKelompok: 'Kelompok EMPAT',
+    urutan: 4,
+    jumlahAnggota: 6,
+    anggota: ['Dwik', 'Khoir', 'Doko', 'Riski', 'Rudi', 'Andri'],
+    status: 'aktif',
+  },
+];
+
+export const MOCK_PENASEHAT: PenasehatDusun[] = [
+  { id: 1, nama: 'P. Joko', jabatan: 'Penasehat', status: 'aktif' },
+  { id: 2, nama: 'P. Jono', jabatan: 'Penasehat', status: 'aktif' },
+  { id: 3, nama: 'P. Pawit', jabatan: 'Penasehat', status: 'aktif' },
+  { id: 4, nama: 'P. Muhsin', jabatan: 'Penasehat', status: 'aktif' },
 ];
 
 export const RAW_WARGA_NAMES = [
@@ -97,7 +143,12 @@ export const INITIAL_PENGAMBILAN: PengambilanMingguan[] = [
     id: 1,
     periodeId: 3,
     nomorPengambilan: 1,
+    tanggalJadwal: '2026-08-01',
     tanggalPengambilan: '2026-08-01',
+    hariPengambilan: 'Malam Minggu',
+    isDitunda: false,
+    kelompokId: 1,
+    namaKelompok: 'Kelompok SATU',
     status: 'disahkan',
     totalWarga: 40,
     totalSudahDiambil: 40,
@@ -115,7 +166,12 @@ export const INITIAL_PENGAMBILAN: PengambilanMingguan[] = [
     id: 2,
     periodeId: 3,
     nomorPengambilan: 2,
+    tanggalJadwal: '2026-08-08',
     tanggalPengambilan: '2026-08-08',
+    hariPengambilan: 'Malam Minggu',
+    isDitunda: false,
+    kelompokId: 2,
+    namaKelompok: 'Kelompok DUA',
     status: 'disahkan',
     totalWarga: 40,
     totalSudahDiambil: 40,
@@ -133,7 +189,13 @@ export const INITIAL_PENGAMBILAN: PengambilanMingguan[] = [
     id: 3,
     periodeId: 3,
     nomorPengambilan: 3,
-    tanggalPengambilan: '2026-08-15',
+    tanggalJadwal: '2026-08-15',
+    tanggalPengambilan: '2026-08-16',
+    hariPengambilan: 'Malam Senin (Ditunda Hujan)',
+    isDitunda: true,
+    alasanPenundaan: 'Hujan Deras Malam Minggu (15 Agt)',
+    kelompokId: 3,
+    namaKelompok: 'Kelompok TIGA',
     status: 'disahkan',
     totalWarga: 40,
     totalSudahDiambil: 40,
@@ -143,15 +205,20 @@ export const INITIAL_PENGAMBILAN: PengambilanMingguan[] = [
     uangFisik: 620000,
     selisih: 0,
     petugasLapangan: 'Kelompok TIGA (Zazed, Alfin, Udin, Syahrul, Syarif)',
-    catatan: 'Tugas Kelompok TIGA (15 Agt 2026) selesai lengkap 40 KK.',
-    tanggalDisahkan: '2026-08-15 23:00:00',
+    catatan: 'Tugas Kelompok TIGA direalisasikan Malam Senin (16 Agt 2026) karena hujan deras.',
+    tanggalDisahkan: '2026-08-16 22:45:00',
     disahkanOleh: 'Syarif Suharsono (Bendahara)',
   },
   {
     id: 4,
     periodeId: 3,
     nomorPengambilan: 4,
+    tanggalJadwal: '2026-08-22',
     tanggalPengambilan: '2026-08-22',
+    hariPengambilan: 'Malam Minggu',
+    isDitunda: false,
+    kelompokId: 4,
+    namaKelompok: 'Kelompok EMPAT',
     status: 'berjalan',
     totalWarga: 40,
     totalSudahDiambil: 32,
@@ -161,7 +228,7 @@ export const INITIAL_PENGAMBILAN: PengambilanMingguan[] = [
     uangFisik: 0,
     selisih: 0,
     petugasLapangan: 'Kelompok EMPAT (Dwik, Khoir, Doko, Riski, Rudi, Andri)',
-    catatan: 'Tugas Kelompok EMPAT (22 Agt 2026) sedang berjalan.',
+    catatan: 'Tugas Kelompok EMPAT (22 Agt 2026) sedang berlangsung.',
   },
 ];
 
@@ -197,7 +264,7 @@ export const INITIAL_TRANSAKSI_KAS: TransaksiKas[] = [
     kategoriNama: 'Jimpitan Mingguan',
     tanggal: '2026-08-01',
     nominal: 60000,
-    keterangan: 'Pembagian 50% Jimpitan Pengambilan Sesi #001',
+    keterangan: 'Pembagian 50% Jimpitan Tugas Kelompok SATU (01 Agt 2026)',
     createdBy: 'Syarif Suharsono',
     createdAt: '2026-08-01 22:30:00',
   },
@@ -210,7 +277,7 @@ export const INITIAL_TRANSAKSI_KAS: TransaksiKas[] = [
     kategoriNama: 'Jimpitan Mingguan',
     tanggal: '2026-08-01',
     nominal: 60000,
-    keterangan: 'Pembagian 50% Jimpitan Pengambilan Sesi #001',
+    keterangan: 'Pembagian 50% Jimpitan Tugas Kelompok SATU (01 Agt 2026)',
     createdBy: 'Syarif Suharsono',
     createdAt: '2026-08-01 22:30:00',
   },
@@ -252,59 +319,75 @@ export const INITIAL_TRANSAKSI_KAS: TransaksiKas[] = [
     kategoriNama: 'Infrastruktur Dusun',
     tanggal: '2026-08-12',
     nominal: 1200000,
-    keterangan: 'Perbaikan lampu penerangan jalan utama Dusun Kiyudan',
+    keterangan: 'Perbaikan penerangan lampu jalan gang RT 01',
+    kegiatanId: 2,
     createdBy: 'Humam Syarif',
     createdAt: '2026-08-12 11:00:00',
-    buktiFoto: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
+    buktiFoto: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=600&q=80',
   },
 ];
 
-export const INITIAL_TABUNGAN_TRANSAKSI: TransaksiTabungan[] = INITIAL_WARGA.map((w, idx) => {
-  const baseSavings = (idx + 1) * 10000 + 100000;
-  return {
-    id: idx + 1,
-    wargaId: w.id,
+export const INITIAL_TABUNGAN_TRANSAKSI: TransaksiTabungan[] = [
+  {
+    id: 1,
+    wargaId: 1,
     periodeId: 3,
+    pengambilanId: 1,
     jenis: 'setoran',
-    nominal: baseSavings,
-    keterangan: 'Akumulasi Setoran Tabungan Sesi #001 - #003 (Agustus 2026)',
-    createdAt: '2026-08-15 23:00:00',
-    createdBy: 'System Auto-Posting',
-  };
-});
+    nominal: 10000,
+    keterangan: 'Setoran Tabungan — Tugas Kelompok SATU (01 Agt 2026)',
+    createdAt: '2026-08-01 22:30:00',
+    createdBy: 'Kelompok SATU',
+  },
+  {
+    id: 2,
+    wargaId: 1,
+    periodeId: 3,
+    pengambilanId: 2,
+    jenis: 'setoran',
+    nominal: 20000,
+    keterangan: 'Setoran Tabungan — Tugas Kelompok DUA (08 Agt 2026)',
+    createdAt: '2026-08-08 22:15:00',
+    createdBy: 'Kelompok DUA',
+  },
+  {
+    id: 3,
+    wargaId: 1,
+    periodeId: 3,
+    pengambilanId: 3,
+    jenis: 'setoran',
+    nominal: 15000,
+    keterangan: 'Setoran Tabungan — Tugas Kelompok TIGA (16 Agt 2026)',
+    createdAt: '2026-08-16 22:45:00',
+    createdBy: 'Kelompok TIGA',
+  },
+];
 
 export const INITIAL_PENGUMUMAN: Pengumuman[] = [
   {
     id: 1,
-    judul: 'Jadwal Pengambilan Jimpitan Sesi #004 Sabtu Malam Minggu',
-    isi: 'Diberitahukan kepada seluruh warga Dusun Kiyudan (40 KK) bahwa pengambilan jimpitan Rp3.000 & tabungan bebas dilaksanakan Sabtu malam pukul 19:30 WIB oleh petugas regu Pemuda.',
-    tanggalPublish: '2026-08-21',
+    judul: 'Jadwal Giliran Jimpitan & Penundaan Hujan',
+    isi: 'Jimpitan dilaksanakan tiap malam Minggu oleh 4 kelompok bergiliran. Jika hujan deras atau berhalangan, dialihkan ke malam Senin tanpa mengubah urutan rotasi kelompok.',
+    tanggalPublish: '2026-08-16',
     isActive: true,
   },
   {
     id: 2,
-    judul: 'Undangan Kerja Bakti Pembenahan Fasilitas Dusun',
-    isi: 'Diharapkan kehadiran bapak-bapak dan pemuda Dusun Kiyudan dalam kegiatan kerja bakti pada hari Minggu, 23 Agustus 2026 pukul 07:00 WIB.',
-    tanggalPublish: '2026-08-19',
+    judul: 'Laporan Keuangan Kas Pemuda & Dusun Agustus 2026',
+    isi: 'Seluruh pemasukan jimpitan telah dibagi 50% Kas Pemuda dan 50% Kas Dusun. Tabungan warga 100% aman dan dapat dicek mandiri melalui fitur Cek Tabungan.',
+    tanggalPublish: '2026-08-16',
     isActive: true,
-  }
+  },
 ];
 
 export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   {
     id: 1,
-    username: 'Syarif Suharsono',
-    aksi: 'DISAHKAN_PENGAMBILAN',
-    modul: 'Pengambilan Mingguan',
-    detail: 'Mengesahkan Pengambilan Sesi #003 tanggal 15 Agustus 2026 (Uang Fisik: Rp620.000, Selisih: Rp0)',
-    timestamp: '2026-08-15 23:00:00',
+    userId: 1,
+    username: 'Kelompok SATU',
+    aksi: 'ENTRY_JIMPITAN',
+    modul: 'Pengambilan Lapangan',
+    detail: 'Menyelesaikan input jimpitan & tabungan warga (01 Agt 2026)',
+    timestamp: '2026-08-01 22:00:00',
   },
-  {
-    id: 2,
-    username: 'Slamet Rifaudin',
-    aksi: 'INPUT_PEMASUKAN_KAS',
-    modul: 'Kas Pemuda',
-    detail: 'Menambahkan Pemasukan Kas Pemuda Rp1.500.000 (Sponsorship Toko Berkah)',
-    timestamp: '2026-08-05 14:00:00',
-  }
 ];
