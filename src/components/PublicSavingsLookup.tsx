@@ -11,7 +11,11 @@ interface SavingsModalProps {
 }
 
 export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClose }) => {
-  const { lookupTabunganPublik, currentPeriode, transaksiPengambilanList, pengambilanList, wargaList } = useApp();
+  const { 
+    lookupTabunganPublik, currentPeriode, transaksiPengambilanList, 
+    pengambilanList, wargaList, transaksiTabunganList, getSaldoTabunganWarga 
+  } = useApp();
+
   const [nama, setNama] = useState('Anwari');
   const [kodeWarga, setKodeWarga] = useState('KDY-001');
   const [filterBulan, setFilterBulan] = useState<number | 'semua'>('semua');
@@ -75,7 +79,7 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
     executeLookup(w.nama, w.kodeWarga);
   };
 
-  // Personal PDF Generator
+  // Comprehensive & Accurate Personal PDF Generator
   const handleExportPersonalPDF = () => {
     if (!searchResult.warga) return;
 
@@ -89,15 +93,39 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
         });
 
         const warga = searchResult.warga!;
+        const totalSaldoTabungan = getSaldoTabunganWarga(warga.id);
+
         const nowStr = new Date().toLocaleDateString('id-ID', {
           weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
         });
 
-        // Filter transactions for this citizen
-        const citizenSessionsTx = transaksiPengambilanList.filter(
+        // 1. Fetch ALL savings transactions (Setoran & Penarikan) for this citizen
+        const citizenSavingsHistory = (transaksiTabunganList || []).filter(t => t.wargaId === warga.id);
+
+        // Filter by month if selected
+        const filteredSavings = citizenSavingsHistory.filter(item => {
+          if (filterBulan !== 'semua') {
+            const dateObj = new Date(item.createdAt);
+            const m = dateObj.getMonth() + 1;
+            return m === Number(filterBulan);
+          }
+          return true;
+        });
+
+        // Calculate totals for Tabungan
+        const totalSetoranTabungan = filteredSavings
+          .filter(t => t.jenis === 'setoran')
+          .reduce((sum, t) => sum + t.nominal, 0);
+
+        const totalPenarikanTabungan = filteredSavings
+          .filter(t => t.jenis === 'penarikan')
+          .reduce((sum, t) => sum + t.nominal, 0);
+
+        // 2. Fetch Weekly Jimpitan Sessions for this citizen
+        const citizenSessionsTx = (transaksiPengambilanList || []).filter(
           t => t.wargaId === warga.id && t.status === 'sudah_diambil'
         ).map(t => {
-          const sessionObj = pengambilanList.find(s => s.id === t.pengambilanId);
+          const sessionObj = (pengambilanList || []).find(s => s.id === t.pengambilanId);
           return {
             ...t,
             sessionObj,
@@ -111,9 +139,8 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
           return true;
         }).sort((a, b) => (a.sessionObj?.nomorPengambilan || 0) - (b.sessionObj?.nomorPengambilan || 0));
 
-        const sumJimpitan = citizenSessionsTx.reduce((acc, t) => acc + t.jimpitan, 0);
-        const sumTabungan = citizenSessionsTx.reduce((acc, t) => acc + t.tabungan, 0);
-        const grandTotal = sumJimpitan + sumTabungan;
+        const totalJimpitanDiisi = citizenSessionsTx.reduce((sum, t) => sum + t.jimpitan, 0);
+        const totalTabunganDiisiSesi = citizenSessionsTx.reduce((sum, t) => sum + t.tabungan, 0);
 
         let scopeText = `Akumulasi 1 Tahun (Periode Pembukuan ${currentPeriode.tahun})`;
         if (filterBulan !== 'semua') {
@@ -124,94 +151,99 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
         // Kop Surat Header
         doc.setFont('Helvetica', 'bold');
         doc.setFontSize(16);
-        doc.setTextColor(16, 185, 129); // Emerald
+        doc.setTextColor(16, 185, 129); // Emerald Green
         doc.text('PEMUDA DUSUN KIYUDAN', 14, 15);
 
-        doc.setFontSize(9);
+        doc.setFontSize(8.5);
         doc.setFont('Helvetica', 'normal');
         doc.setTextColor(100, 116, 139);
         doc.text('RT 01 / RW 04, Desa Majaksingi, Kecamatan Borobudur, Kabupaten Magelang', 14, 20);
-        doc.text('Sistem Keuangan, Jimpitan & Tabungan Mandiri Warga', 14, 24);
+        doc.text('Sistem Informasi Keuangan, Jimpitan & Tabungan Mandiri Warga', 14, 24);
 
         doc.setLineWidth(0.5);
         doc.setDrawColor(203, 213, 225);
         doc.line(14, 27, 196, 27);
 
-        // Judul Dokumen
+        // Title Section
         doc.setFont('Helvetica', 'bold');
         doc.setFontSize(13);
         doc.setTextColor(15, 23, 42);
-        doc.text('KARTU & LAPORAN SETORAN INDIVIDU WARGA', 14, 34);
+        doc.text('LAPORAN RINCIAN TABUNGAN & JIMPITAN INDIVIDU WARGA', 14, 34);
 
         doc.setFont('Helvetica', 'normal');
-        doc.setFontSize(9.5);
+        doc.setFontSize(9);
         doc.setTextColor(71, 85, 105);
         doc.text(`Kriteria Laporan: ${scopeText} | Tanggal Cetak: ${nowStr}`, 14, 39);
 
-        // Detail Box Warga
+        // Citizen Summary Box
         doc.setFillColor(241, 245, 249);
-        doc.roundedRect(14, 44, 182, 28, 3, 3, 'F');
+        doc.roundedRect(14, 43, 182, 32, 3, 3, 'F');
 
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`Kode Warga : ${warga.kodeWarga}`, 18, 50);
+        doc.text(`Nama Warga : ${warga.nama}`, 18, 56);
+        doc.text(`Alamat / No : ${warga.alamat} (${warga.noRumah})`, 18, 62);
+        doc.text(`Status      : Aktif Peserta Pembukuan ${currentPeriode.tahun}`, 18, 68);
+
+        doc.text(`Total Pertemuan Sesi : ${citizenSessionsTx.length} Pertemuan`, 110, 50);
+        doc.text(`Total Setoran Jimpitan: Rp ${totalJimpitanDiisi.toLocaleString('id-ID')}`, 110, 56);
+        doc.text(`Total Setoran Tabungan: Rp ${totalSetoranTabungan.toLocaleString('id-ID')}`, 110, 62);
+        
+        doc.setTextColor(16, 185, 129);
+        doc.setFontSize(10.5);
+        doc.text(`TOTAL SALDO TABUNGAN : Rp ${totalSaldoTabungan.toLocaleString('id-ID')}`, 110, 69);
+
+        // TABLE 1: TABUNGAN LEDGER (Mandiri + Sesi)
         doc.setFont('Helvetica', 'bold');
         doc.setFontSize(10);
         doc.setTextColor(15, 23, 42);
-        doc.text(`Kode Warga : ${warga.kodeWarga}`, 18, 51);
-        doc.text(`Nama Warga : ${warga.nama}`, 18, 57);
-        doc.text(`Alamat / No : ${warga.alamat} (${warga.noRumah})`, 18, 63);
+        doc.text('1. Riwayat Transaksi Buku Tabungan Warga', 14, 82);
 
-        doc.text(`Total Pertemuan  : ${citizenSessionsTx.length} Sesi`, 110, 51);
-        doc.text(`Total Jimpitan   : Rp ${sumJimpitan.toLocaleString('id-ID')}`, 110, 57);
-        doc.setTextColor(16, 185, 129);
-        doc.text(`GRAND TOTAL SALDO: Rp ${grandTotal.toLocaleString('id-ID')}`, 110, 63);
-
-        // Table Body
-        const tableBody = citizenSessionsTx.map((item, idx) => [
+        const tabunganTableBody = filteredSavings.map((t, idx) => [
           idx + 1,
-          `Sesi #${item.sessionObj?.nomorPengambilan}`,
-          item.sessionObj?.tanggalPengambilan || '-',
-          `Rp ${item.jimpitan.toLocaleString('id-ID')}`,
-          `Rp ${item.tabungan.toLocaleString('id-ID')}`,
-          item.sessionObj?.petugasLapangan || 'Danang Prasetyo',
-          `Rp ${item.total.toLocaleString('id-ID')}`,
+          t.createdAt ? t.createdAt.split(' ')[0] : '-',
+          t.jenis.toUpperCase(),
+          t.keterangan,
+          t.jenis === 'setoran' ? `+ Rp ${t.nominal.toLocaleString('id-ID')}` : `- Rp ${t.nominal.toLocaleString('id-ID')}`,
+          t.createdBy || 'Bendahara',
         ]);
 
-        // Footer row
-        tableBody.push([
+        tabunganTableBody.push([
           '',
           '',
-          'TOTAL AKUMULASI SETORAN',
-          `Rp ${sumJimpitan.toLocaleString('id-ID')}`,
-          `Rp ${sumTabungan.toLocaleString('id-ID')}`,
-          '',
-          `Rp ${grandTotal.toLocaleString('id-ID')}`,
+          'TOTAL AKUMULASI TABUNGAN',
+          `Setoran: Rp ${totalSetoranTabungan.toLocaleString('id-ID')} | Penarikan: Rp ${totalPenarikanTabungan.toLocaleString('id-ID')}`,
+          `Rp ${totalSaldoTabungan.toLocaleString('id-ID')}`,
+          'SALDO UTUH',
         ]);
 
         autoTable(doc, {
-          startY: 76,
-          head: [['No', 'Sesi Minggu', 'Tanggal', 'Jimpitan (3k)', 'Tabungan', 'Petugas Lapangan', 'Total Setoran']],
-          body: tableBody,
+          startY: 85,
+          head: [['No', 'Tanggal', 'Jenis', 'Keterangan Transaksi', 'Nominal (Rp)', 'Pencatat']],
+          body: tabunganTableBody,
           theme: 'striped',
           headStyles: {
             fillColor: [16, 185, 129],
             textColor: [255, 255, 255],
             fontStyle: 'bold',
-            fontSize: 9,
+            fontSize: 8.5,
           },
           bodyStyles: {
-            fontSize: 8.5,
+            fontSize: 8,
             textColor: [30, 41, 59],
           },
           columnStyles: {
             0: { cellWidth: 10, halign: 'center' },
-            1: { cellWidth: 24, fontStyle: 'bold' },
-            2: { cellWidth: 26 },
-            3: { cellWidth: 28, halign: 'right' },
-            4: { cellWidth: 30, halign: 'right' },
-            5: { cellWidth: 34 },
-            6: { cellWidth: 30, halign: 'right', fontStyle: 'bold' },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 22, fontStyle: 'bold' },
+            3: { cellWidth: 65 },
+            4: { cellWidth: 32, halign: 'right', fontStyle: 'bold' },
+            5: { cellWidth: 28 },
           },
           didParseCell: (data) => {
-            if (data.row.index === tableBody.length - 1) {
+            if (data.row.index === tabunganTableBody.length - 1) {
               data.cell.styles.fontStyle = 'bold';
               data.cell.styles.fillColor = [226, 232, 240];
               data.cell.styles.textColor = [15, 23, 42];
@@ -219,35 +251,100 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
           },
         });
 
+        // TABLE 2: WEEKLY JIMPITAN BREAKDOWN
+        let nextY = (doc as any).lastAutoTable.finalY + 8;
+        
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        doc.text('2. Rincian Sesi Keliling Lapangan Sabtu Malam (Jimpitan & Tabungan)', 14, nextY);
+
+        const jimpitanTableBody = citizenSessionsTx.map((item, idx) => [
+          idx + 1,
+          `Sesi #${item.sessionObj?.nomorPengambilan}`,
+          item.sessionObj?.tanggalPengambilan || '-',
+          `Rp ${item.jimpitan.toLocaleString('id-ID')}`,
+          `Rp ${item.tabungan.toLocaleString('id-ID')}`,
+          item.sessionObj?.petugasLapangan || 'Petugas Lapangan',
+          `Rp ${item.total.toLocaleString('id-ID')}`,
+        ]);
+
+        const grandTotalSesi = totalJimpitanDiisi + totalTabunganDiisiSesi;
+        jimpitanTableBody.push([
+          '',
+          '',
+          'TOTAL SETORAN KELILING',
+          `Rp ${totalJimpitanDiisi.toLocaleString('id-ID')}`,
+          `Rp ${totalTabunganDiisiSesi.toLocaleString('id-ID')}`,
+          '',
+          `Rp ${grandTotalSesi.toLocaleString('id-ID')}`,
+        ]);
+
+        autoTable(doc, {
+          startY: nextY + 3,
+          head: [['No', 'Sesi Minggu', 'Tanggal Sesi', 'Jimpitan (3k)', 'Setor Tabungan', 'Petugas Keliling', 'Total Diterima']],
+          body: jimpitanTableBody,
+          theme: 'striped',
+          headStyles: {
+            fillColor: [245, 158, 11], // Amber Gold
+            textColor: [15, 23, 42],
+            fontStyle: 'bold',
+            fontSize: 8.5,
+          },
+          bodyStyles: {
+            fontSize: 8,
+            textColor: [30, 41, 59],
+          },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 24, fontStyle: 'bold' },
+            2: { cellWidth: 26 },
+            3: { cellWidth: 26, halign: 'right' },
+            4: { cellWidth: 28, halign: 'right' },
+            5: { cellWidth: 38 },
+            6: { cellWidth: 30, halign: 'right', fontStyle: 'bold' },
+          },
+          didParseCell: (data) => {
+            if (data.row.index === jimpitanTableBody.length - 1) {
+              data.cell.styles.fontStyle = 'bold';
+              data.cell.styles.fillColor = [254, 243, 199];
+              data.cell.styles.textColor = [15, 23, 42];
+            }
+          },
+        });
+
         // Signatures Block
-        const finalY = (doc as any).lastAutoTable.finalY + 15;
+        let finalY = (doc as any).lastAutoTable.finalY + 12;
 
-        if (finalY < 250) {
-          doc.setFontSize(9);
-          doc.setTextColor(15, 23, 42);
-
-          const col1 = 25;
-          const col2 = 85;
-          const col3 = 145;
-
-          doc.text('Warga Pemilik Tabungan,', col1, finalY);
-          doc.text('Petugas Lapangan,', col2, finalY);
-          doc.text('Bendahara Dusun,', col3, finalY);
-
-          doc.setFont('Helvetica', 'bold');
-          doc.text(warga.nama, col1, finalY + 18);
-          doc.text('Humam Syarif', col2, finalY + 18);
-          doc.text('Syarif Suharsono', col3, finalY + 18);
-
-          doc.setFont('Helvetica', 'normal');
-          doc.setFontSize(8);
-          doc.setTextColor(100, 116, 139);
-          doc.text(`Kode: ${warga.kodeWarga}`, col1, finalY + 22);
-          doc.text('Ketua Pemuda Kiyudan', col2, finalY + 22);
-          doc.text('Pengelola Keuangan', col3, finalY + 22);
+        if (finalY > 245) {
+          doc.addPage();
+          finalY = 20;
         }
 
-        doc.save(`Laporan_Personal_${warga.kodeWarga}_${warga.nama.replace(/\s+/g, '_')}.pdf`);
+        doc.setFontSize(8.5);
+        doc.setTextColor(15, 23, 42);
+
+        const col1 = 25;
+        const col2 = 85;
+        const col3 = 145;
+
+        doc.text('Warga Pemilik Tabungan,', col1, finalY);
+        doc.text('Ketua Pemuda Kiyudan,', col2, finalY);
+        doc.text('Bendahara Dusun,', col3, finalY);
+
+        doc.setFont('Helvetica', 'bold');
+        doc.text(warga.nama, col1, finalY + 18);
+        doc.text('Humam Syarif', col2, finalY + 18);
+        doc.text('Syarif Suharsono', col3, finalY + 18);
+
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Kode: ${warga.kodeWarga}`, col1, finalY + 22);
+        doc.text('Ketua Pemuda', col2, finalY + 22);
+        doc.text('Bendahara Dusun', col3, finalY + 22);
+
+        doc.save(`Laporan_Lengkap_${warga.kodeWarga}_${warga.nama.replace(/\s+/g, '_')}.pdf`);
       } catch (e) {
         console.error(e);
       } finally {
