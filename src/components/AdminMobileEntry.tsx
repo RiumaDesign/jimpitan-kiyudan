@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  UserCheck, Search, Check, Clock, ArrowLeft, 
-  Save, AlertTriangle, X, ChevronDown, ChevronUp, Zap, Coins, Edit3, Sparkles 
+  UserCheck, Search, Check, ArrowLeft, 
+  Save, AlertTriangle, X, ChevronDown, ChevronUp, Zap, Coins, Edit3, Sparkles, Table 
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -36,8 +36,8 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
   const [filterStatus, setFilterStatus] = useState<'semua' | 'sudah' | 'belum'>('semua');
   const [showSuggestions, setShowSuggestions] = useState(false);
   
-  // Selected Warga for editing (Defaults to first warga so form is available)
-  const [selectedWargaId, setSelectedWargaId] = useState<number | null>(1);
+  // Selected Warga for editing modal/drawer
+  const [selectedWargaId, setSelectedWargaId] = useState<number | null>(null);
   const [jimpitanInputStr, setJimpitanInputStr] = useState<string>('3000');
   const [tabunganInputStr, setTabunganInputStr] = useState<string>('10000');
   const [statusInput, setStatusInput] = useState<'sudah_diambil' | 'tidak_ada' | 'ditunda' | 'tidak_ikut'>('sudah_diambil');
@@ -91,7 +91,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
     setTimeout(() => setIsSavedMetadata(false), 2000);
   };
 
-  const handleSelectWarga = (wargaId: number) => {
+  const handleOpenEditDrawer = (wargaId: number) => {
     setSelectedWargaId(wargaId);
     setShowSuggestions(false);
     const existingTx = transaksiPengambilanList.find(t => t.pengambilanId === activeSession.id && t.wargaId === wargaId);
@@ -152,15 +152,14 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
 
     setShowConfirmModal(false);
 
-    // Smoothly load next unvisited resident without closing the form
+    // Smoothly load next unvisited resident in drawer
     const nextUnvisited = activeWargaItems.find(item => item.warga.id > selectedWargaId && item.tx?.status !== 'sudah_diambil')
       || activeWargaItems.find(item => item.warga.id !== selectedWargaId && item.tx?.status !== 'sudah_diambil');
 
     if (nextUnvisited) {
-      handleSelectWarga(nextUnvisited.warga.id);
+      handleOpenEditDrawer(nextUnvisited.warga.id);
     } else {
-      // Keep form open on current resident if all 40 KK are filled
-      handleSelectWarga(selectedWargaId);
+      setSelectedWargaId(null);
     }
   };
 
@@ -170,33 +169,36 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
   const currentTotalSetoran = (statusInput === 'sudah_diambil' ? currentNumericJimpitan : 0) + (statusInput === 'sudah_diambil' ? currentNumericTabungan : 0);
 
   return (
-    <div className="space-y-5 animate-fadeIn pb-24 max-w-4xl mx-auto">
+    <div className="space-y-6 animate-fadeIn pb-24 max-w-5xl mx-auto">
       
-      {/* COMPACT TOP HEADER & METADATA BAR */}
-      <div className="glass-panel p-4 rounded-3xl border border-gray-800 space-y-3 shadow-xl">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
+      {/* HEADER BANNER & METADATA BAR */}
+      <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-gray-800 space-y-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
             {onBack && (
-              <button onClick={onBack} className="p-2 rounded-xl text-gray-400 hover:text-white bg-gray-900">
-                <ArrowLeft className="w-4 h-4" />
+              <button onClick={onBack} className="p-2.5 rounded-xl text-gray-400 hover:text-white bg-gray-900">
+                <ArrowLeft className="w-5 h-5" />
               </button>
             )}
             <div>
-              <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30 uppercase">
-                SESI #{activeSession.nomorPengambilan} • {tanggalSesi}
-              </span>
-              <h2 className="text-base font-bold text-white font-heading mt-0.5">
-                Petugas: <span className="text-amber-300">{petugasSesi}</span>
+              <div className="flex items-center space-x-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 uppercase">
+                  📱 ENTRY LAPANGAN SESI #{activeSession.nomorPengambilan}
+                </span>
+                <span className="text-xs text-gray-400">{tanggalSesi}</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white font-heading mt-0.5">
+                Petugas Keliling: <span className="text-amber-300">{petugasSesi}</span>
               </h2>
             </div>
           </div>
 
           <button
             onClick={() => setShowMetadataPanel(!showMetadataPanel)}
-            className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-gray-900 text-gray-300 hover:text-white border border-gray-800 flex items-center space-x-1"
+            className="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-900 text-gray-300 hover:text-white border border-gray-800 flex items-center space-x-1.5 shrink-0"
           >
-            <span>{showMetadataPanel ? 'Tutup Ubah' : '⚙️ Ubah Petugas'}</span>
-            {showMetadataPanel ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            <span>{showMetadataPanel ? 'Tutup Pengaturan' : '⚙️ Pengaturan Regu & Tanggal'}</span>
+            {showMetadataPanel ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
 
@@ -205,12 +207,12 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
           <div className="p-4 rounded-2xl bg-gray-900/90 border border-emerald-500/30 space-y-3 animate-fadeIn">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold text-gray-300 mb-1">Tanggal Pengambilan</label>
+                <label className="block text-[11px] font-semibold text-gray-300 mb-1">Tanggal Pengambilan / Entry</label>
                 <input
                   type="date"
                   value={tanggalSesi}
                   onChange={(e) => setTanggalSesi(e.target.value)}
-                  className="w-full glass-input px-3 py-1.5 rounded-xl text-xs font-bold text-white"
+                  className="w-full glass-input px-3 py-2 rounded-xl text-xs font-bold text-white"
                 />
               </div>
 
@@ -221,7 +223,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                   value={petugasSesi}
                   onChange={(e) => setPetugasSesi(e.target.value)}
                   placeholder="Nama petugas..."
-                  className="w-full glass-input px-3 py-1.5 rounded-xl text-xs font-bold text-amber-300"
+                  className="w-full glass-input px-3 py-2 rounded-xl text-xs font-bold text-amber-300"
                 />
               </div>
             </div>
@@ -232,28 +234,28 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
               <button
                 type="button"
                 onClick={() => setPetugasSesi('Kelompok SATU (Armi, Apep, Fadel, Khabib, Uzik, Ihsan)')}
-                className="px-2 py-0.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-500/30 shrink-0"
+                className="px-2.5 py-1 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-500/30 shrink-0 font-semibold"
               >
                 Kelompok SATU
               </button>
               <button
                 type="button"
                 onClick={() => setPetugasSesi('Kelompok DUA (Iwan, Humam, Kusnadi, Feri, Pi\'i, Harno)')}
-                className="px-2 py-0.5 rounded-lg bg-blue-950 text-blue-300 border border-blue-500/30 shrink-0"
+                className="px-2.5 py-1 rounded-lg bg-blue-950 text-blue-300 border border-blue-500/30 shrink-0 font-semibold"
               >
                 Kelompok DUA
               </button>
               <button
                 type="button"
                 onClick={() => setPetugasSesi('Kelompok TIGA (Zazed, Alfin, Udin, Syahrul, Syarif)')}
-                className="px-2 py-0.5 rounded-lg bg-amber-950 text-amber-300 border border-amber-500/30 shrink-0"
+                className="px-2.5 py-1 rounded-lg bg-amber-950 text-amber-300 border border-amber-500/30 shrink-0 font-semibold"
               >
                 Kelompok TIGA
               </button>
               <button
                 type="button"
                 onClick={() => setPetugasSesi('Kelompok EMPAT (Dwik, Khoir, Doko, Riski, Rudi, Andri)')}
-                className="px-2 py-0.5 rounded-lg bg-purple-950 text-purple-300 border border-purple-500/30 shrink-0"
+                className="px-2.5 py-1 rounded-lg bg-purple-950 text-purple-300 border border-purple-500/30 shrink-0 font-semibold"
               >
                 Kelompok EMPAT
               </button>
@@ -263,7 +265,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
               <button
                 type="button"
                 onClick={handleSaveMetadata}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1 ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
                   isSavedMetadata ? 'bg-emerald-500 text-gray-950' : 'bg-emerald-600 text-white'
                 }`}
               >
@@ -275,32 +277,32 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
         )}
 
         {/* Real-time Session Calculations Card */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
-          <div className="bg-gray-900/90 p-2.5 rounded-2xl border border-gray-800">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs pt-1">
+          <div className="bg-gray-900/90 p-3 rounded-2xl border border-gray-800">
             <span className="text-[10px] text-gray-400 uppercase font-semibold block">Prosentase Sesi</span>
-            <span className="font-bold text-emerald-400 text-sm">{liveCountSudah} / {totalWargaCount} KK ({progressPercent}%)</span>
+            <span className="font-bold text-emerald-400 text-sm mt-0.5 block">{liveCountSudah} / {totalWargaCount} KK ({progressPercent}%)</span>
           </div>
-          <div className="bg-gray-900/90 p-2.5 rounded-2xl border border-gray-800">
+          <div className="bg-gray-900/90 p-3 rounded-2xl border border-gray-800">
             <span className="text-[10px] text-gray-400 uppercase font-semibold block">Jimpitan Terkumpul</span>
-            <span className="font-bold text-amber-400 text-sm">Rp {liveTotalJimpitan.toLocaleString('id-ID')}</span>
+            <span className="font-bold text-amber-400 text-sm mt-0.5 block">Rp {liveTotalJimpitan.toLocaleString('id-ID')}</span>
           </div>
-          <div className="bg-gray-900/90 p-2.5 rounded-2xl border border-gray-800">
+          <div className="bg-gray-900/90 p-3 rounded-2xl border border-gray-800">
             <span className="text-[10px] text-gray-400 uppercase font-semibold block">Tabungan Terkumpul</span>
-            <span className="font-bold text-blue-400 text-sm">Rp {liveTotalTabungan.toLocaleString('id-ID')}</span>
+            <span className="font-bold text-blue-400 text-sm mt-0.5 block">Rp {liveTotalTabungan.toLocaleString('id-ID')}</span>
           </div>
-          <div className="bg-gray-900/90 p-2.5 rounded-2xl border border-emerald-500/30">
+          <div className="bg-gray-900/90 p-3 rounded-2xl border border-emerald-500/30">
             <span className="text-[10px] text-emerald-400 uppercase font-semibold block">Total Uang Fisik</span>
-            <span className="font-black text-emerald-400 text-base font-heading">Rp {liveTotalSetoran.toLocaleString('id-ID')}</span>
+            <span className="font-black text-emerald-400 text-base mt-0.5 block font-heading">Rp {liveTotalSetoran.toLocaleString('id-ID')}</span>
           </div>
         </div>
       </div>
 
-      {/* SEARCH BAR WITH INSTANT AUTOCOMPLETE DROP-DOWN */}
+      {/* SEARCH BAR WITH AUTOCOMPLETE ON TYPING */}
       <div className="glass-panel p-4 rounded-3xl border border-gray-800 space-y-3 shadow-xl">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 relative">
           
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-emerald-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-emerald-400 absolute left-3.5 top-3" />
             <input
               type="text"
               value={searchTerm}
@@ -309,8 +311,8 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                 setSearchTerm(e.target.value);
                 setShowSuggestions(true);
               }}
-              placeholder="🔍 Ketik nama warga (otomatis muncul saran nama)..."
-              className="w-full glass-input pl-9 pr-3 py-2 rounded-xl text-xs font-medium text-white focus:ring-2 focus:ring-emerald-500"
+              placeholder="🔍 Ketik nama warga (saran otomatis muncul)..."
+              className="w-full glass-input pl-10 pr-3 py-2.5 rounded-xl text-xs font-medium text-white focus:ring-2 focus:ring-emerald-500"
             />
 
             {/* Instant Suggestions Floating Dropdown */}
@@ -319,7 +321,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                 <div className="px-3 py-1.5 bg-gray-950 border-b border-gray-800 text-[10px] font-bold text-emerald-400 uppercase flex items-center justify-between">
                   <span className="flex items-center space-x-1">
                     <Sparkles className="w-3 h-3 text-amber-400" />
-                    <span>Saran Nama Sesuai Huruf Diketik</span>
+                    <span>Saran Nama Warga Diketik</span>
                   </span>
                   <span>{suggestedWarga.length} Hasil</span>
                 </div>
@@ -328,7 +330,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                   <div
                     key={item.warga.id}
                     onClick={() => {
-                      handleSelectWarga(item.warga.id);
+                      handleOpenEditDrawer(item.warga.id);
                       setSearchTerm('');
                     }}
                     className="p-3 border-b border-gray-800/60 hover:bg-emerald-500/20 cursor-pointer flex items-center justify-between transition-colors text-xs"
@@ -363,7 +365,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
           <div className="flex items-center space-x-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
             <button
               onClick={() => setFilterStatus('semua')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 filterStatus === 'semua' ? 'bg-emerald-600 text-white' : 'bg-gray-900 text-gray-400'
               }`}
             >
@@ -371,7 +373,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
             </button>
             <button
               onClick={() => setFilterStatus('sudah')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 filterStatus === 'sudah' ? 'bg-emerald-600 text-white' : 'bg-gray-900 text-gray-400'
               }`}
             >
@@ -379,7 +381,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
             </button>
             <button
               onClick={() => setFilterStatus('belum')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 filterStatus === 'belum' ? 'bg-amber-600 text-white' : 'bg-gray-900 text-gray-400'
               }`}
             >
@@ -390,132 +392,264 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
         </div>
       </div>
 
-      {/* ALWAYS OPEN EDIT FORM PANEL FOR SELECTED WARGA */}
-      {selectedWargaId && (
-        <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-emerald-500/40 bg-gradient-to-br from-emerald-950/40 via-gray-900 to-gray-950 shadow-2xl space-y-4 animate-fadeIn">
-          {(() => {
-            const currentWarga = wargaList.find(w => w.id === selectedWargaId);
-            if (!currentWarga) return null;
+      {/* MAIN INTERACTIVE 40 KK TABLE (SAME STYLE AS PUBLIC JIMPITAN!) */}
+      <div className="glass-panel rounded-3xl border border-gray-800 overflow-hidden shadow-2xl space-y-0">
+        <div className="p-4 bg-gray-950 border-b border-gray-800 flex items-center justify-between text-xs">
+          <div className="flex items-center space-x-2">
+            <Table className="w-4 h-4 text-emerald-400" />
+            <span className="font-bold text-white uppercase tracking-wider">
+              TABEL INPUT SETORAN 40 KK (KLIK BARIS MANAPUN UNTUK UBAH / EDIT DATA)
+            </span>
+          </div>
 
-            return (
-              <form onSubmit={handleOpenConfirmPopup} className="space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-gray-800">
-                  <div>
+          <span className="text-gray-400">
+            Menampilkan <b className="text-emerald-400 font-bold">{filteredItems.length} Warga</b>
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-gray-900/90 text-gray-400 uppercase font-bold border-b border-gray-800 tracking-wider">
+              <tr>
+                <th className="p-3.5 text-center">Kode</th>
+                <th className="p-3.5">Nama Warga</th>
+                <th className="p-3.5">Alamat / No. Rumah</th>
+                <th className="p-3.5 text-right">Jimpitan (Rp)</th>
+                <th className="p-3.5 text-right">Tabungan (Rp)</th>
+                <th className="p-3.5 text-right">Total Setor (Rp)</th>
+                <th className="p-3.5 text-center">Status & Aksi Edit</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800/60 text-gray-300">
+              {filteredItems.map((item) => {
+                const isTaken = item.tx?.status === 'sudah_diambil';
+                const jimpitanVal = isTaken ? (item.tx?.jimpitan || 3000) : 0;
+                const tabunganVal = isTaken ? (item.tx?.tabungan || 0) : 0;
+                const totalVal = jimpitanVal + tabunganVal;
+                const isSelected = selectedWargaId === item.warga.id;
+
+                return (
+                  <tr 
+                    key={item.warga.id} 
+                    onClick={() => handleOpenEditDrawer(item.warga.id)}
+                    className={`cursor-pointer transition-colors ${
+                      isSelected 
+                        ? 'bg-emerald-500/20 text-white font-semibold border-l-4 border-l-emerald-400' 
+                        : 'hover:bg-gray-800/50'
+                    }`}
+                  >
+                    <td className="p-3.5 text-center font-bold text-amber-300 font-heading">
+                      {item.warga.kodeWarga}
+                    </td>
+
+                    <td className="p-3.5 font-bold text-white whitespace-nowrap">
+                      {item.warga.nama}
+                    </td>
+
+                    <td className="p-3.5 text-gray-400 whitespace-nowrap">
+                      {item.warga.alamat} • <b className="text-gray-300">{item.warga.noRumah}</b>
+                    </td>
+
+                    <td className="p-3.5 text-right font-bold text-amber-400 whitespace-nowrap">
+                      {isTaken ? (
+                        <span>Rp {jimpitanVal.toLocaleString('id-ID')}</span>
+                      ) : (
+                        <span className="text-gray-600 font-normal">Rp 0</span>
+                      )}
+                    </td>
+
+                    <td className="p-3.5 text-right font-bold text-blue-400 whitespace-nowrap">
+                      {isTaken ? (
+                        <span>Rp {tabunganVal.toLocaleString('id-ID')}</span>
+                      ) : (
+                        <span className="text-gray-600 font-normal">Rp 0</span>
+                      )}
+                    </td>
+
+                    <td className="p-3.5 text-right font-black text-emerald-400 text-sm font-heading whitespace-nowrap">
+                      {isTaken ? (
+                        <span>Rp {totalVal.toLocaleString('id-ID')}</span>
+                      ) : (
+                        <span className="text-gray-600 font-normal">Rp 0</span>
+                      )}
+                    </td>
+
+                    <td className="p-3.5 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditDrawer(item.warga.id)}
+                        className={`px-3 py-1.5 rounded-xl font-bold text-xs border transition-all inline-flex items-center space-x-1 ${
+                          isTaken 
+                            ? 'bg-emerald-500/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border-emerald-500/30' 
+                            : 'bg-amber-500/10 hover:bg-amber-600 text-amber-300 hover:text-white border-amber-500/30'
+                        }`}
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>{isTaken ? '✏️ Ubah / Edit' : '➕ Input Setoran'}</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+
+            <tfoot className="bg-gray-950 font-bold border-t-2 border-gray-800 text-white">
+              <tr>
+                <td colSpan={3} className="p-4 uppercase text-emerald-400 text-xs">
+                  TOTAL AKUMULASI KELOMPOK LAPANGAN:
+                </td>
+                <td className="p-4 text-right text-amber-400 font-bold">
+                  Rp {liveTotalJimpitan.toLocaleString('id-ID')}
+                </td>
+                <td className="p-4 text-right text-blue-400 font-bold">
+                  Rp {liveTotalTabungan.toLocaleString('id-ID')}
+                </td>
+                <td className="p-4 text-right text-emerald-400 font-black text-sm font-heading">
+                  Rp {liveTotalSetoran.toLocaleString('id-ID')}
+                </td>
+                <td className="p-4 text-center text-xs text-gray-400">
+                  {liveCountSudah} / {totalWargaCount} KK
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      {/* POPUP EDIT DRAWER / MODAL WHEN A RESIDENT IS CLICKED */}
+      {selectedWargaId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="w-full max-w-2xl glass-panel p-6 rounded-3xl border border-emerald-500/50 bg-gradient-to-br from-emerald-950/50 via-gray-900 to-gray-950 shadow-2xl space-y-4 relative max-h-[90vh] overflow-y-auto">
+            
+            <button
+              onClick={() => setSelectedWargaId(null)}
+              className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {(() => {
+              const currentWarga = wargaList.find(w => w.id === selectedWargaId);
+              if (!currentWarga) return null;
+
+              return (
+                <form onSubmit={handleOpenConfirmPopup} className="space-y-4">
+                  <div className="pb-3 border-b border-gray-800">
                     <div className="flex items-center space-x-2">
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                         {currentWarga.kodeWarga}
                       </span>
-                      <span className="text-xs text-emerald-400 font-semibold">FORM INPUT / EDIT SETORAN WARGA</span>
+                      <span className="text-xs text-emerald-400 font-bold uppercase">MENU UBAH / EDIT DATA JIMPITAN</span>
                     </div>
                     <h3 className="text-xl font-bold text-white font-heading mt-1">{currentWarga.nama}</h3>
                     <p className="text-xs text-gray-400">{currentWarga.alamat} • {currentWarga.noRumah}</p>
                   </div>
-                </div>
 
-                {/* 1-TAP QUICK ACTION PRESETS */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                    ⚡ TOMBOL CEPAT 1-KLIK (SETOR INSTAN):
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => applyQuickPreset('standar_13k')}
-                      className="p-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 text-left transition-all space-y-0.5 border border-emerald-400"
-                    >
-                      <div className="flex items-center space-x-1">
-                        <Zap className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                        <span className="font-extrabold text-sm">Rp 13.000</span>
-                      </div>
-                      <p className="text-[10px] text-emerald-100 opacity-90">3k Jimpitan + 10k Tabungan</p>
-                    </button>
+                  {/* 1-TAP QUICK ACTION PRESETS */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                      ⚡ TOMBOL CEPAT 1-KLIK (SETOR INSTAN):
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => applyQuickPreset('standar_13k')}
+                        className="p-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 text-left transition-all space-y-0.5 border border-emerald-400"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <Zap className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                          <span className="font-extrabold text-sm">Rp 13.000</span>
+                        </div>
+                        <p className="text-[10px] text-emerald-100 opacity-90">3k Jimpitan + 10k Tabungan</p>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => applyQuickPreset('jimpitan_3k')}
-                      className="p-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30 text-left transition-all space-y-0.5 border border-amber-400"
-                    >
-                      <div className="flex items-center space-x-1">
-                        <Coins className="w-3.5 h-3.5 text-amber-200 shrink-0" />
-                        <span className="font-extrabold text-sm">Rp 3.000</span>
-                      </div>
-                      <p className="text-[10px] text-amber-100 opacity-90">Jimpitan Saja (Tanpa Tabungan)</p>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => applyQuickPreset('jimpitan_3k')}
+                        className="p-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30 text-left transition-all space-y-0.5 border border-amber-400"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <Coins className="w-3.5 h-3.5 text-amber-200 shrink-0" />
+                          <span className="font-extrabold text-sm">Rp 3.000</span>
+                        </div>
+                        <p className="text-[10px] text-amber-100 opacity-90">Jimpitan Saja (Tanpa Tabungan)</p>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => applyQuickPreset('tidak_ada')}
-                      className="col-span-2 sm:col-span-1 p-3 rounded-2xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs text-left transition-all space-y-0.5 border border-gray-700"
-                    >
-                      <span className="font-extrabold text-sm text-gray-200">🟡 Tidak Ada / Ditunda</span>
-                      <p className="text-[10px] text-gray-400">Rumah Kosong / Ditunda</p>
-                    </button>
-                  </div>
-                </div>
-
-                {/* ADVANCED CUSTOM INPUT FIELDS */}
-                <div className="pt-2 border-t border-gray-800/80 space-y-3">
-                  <span className="text-[11px] font-bold text-gray-400 block uppercase">
-                    ATAU ISI INPUT NOMINAL CUSTOM (Ketik Manual / Tombol Chip):
-                  </span>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Jimpitan Field */}
-                    <div className="glass-card p-3 rounded-2xl border border-emerald-500/30 space-y-1.5">
-                      <label className="text-[11px] font-bold text-emerald-400 uppercase block">
-                        Nominal Jimpitan (Rp):
-                      </label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={jimpitanInputStr}
-                        onChange={(e) => setJimpitanInputStr(e.target.value.replace(/[^0-9]/g, ''))}
-                        placeholder="Min 3000..."
-                        className="w-full glass-input px-3 py-1.5 rounded-xl text-sm font-bold text-emerald-300"
-                      />
-                      <div className="flex items-center space-x-1 text-[10px]">
-                        <button type="button" onClick={() => setJimpitanInputStr('3000')} className="px-2 py-0.5 bg-emerald-950 text-emerald-300 rounded font-semibold border border-emerald-500/30">3rb (Default)</button>
-                        <button type="button" onClick={() => setJimpitanInputStr('5000')} className="px-2 py-0.5 bg-gray-800 text-gray-200 rounded font-semibold">5rb</button>
-                        <button type="button" onClick={() => setJimpitanInputStr('10000')} className="px-2 py-0.5 bg-gray-800 text-gray-200 rounded font-semibold">10rb</button>
-                      </div>
-                    </div>
-
-                    {/* Tabungan Field */}
-                    <div className="glass-card p-3 rounded-2xl border border-blue-500/30 space-y-1.5">
-                      <label className="text-[11px] font-bold text-blue-400 uppercase block">
-                        Nominal Tabungan (Rp):
-                      </label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={tabunganInputStr}
-                        onChange={(e) => setTabunganInputStr(e.target.value.replace(/[^0-9]/g, ''))}
-                        placeholder="Tabungan (10000)..."
-                        className="w-full glass-input px-3 py-1.5 rounded-xl text-sm font-bold text-amber-400"
-                      />
-                      <div className="flex items-center space-x-1 text-[10px]">
-                        <button type="button" onClick={() => setTabunganInputStr('5000')} className="px-2 py-0.5 bg-gray-800 text-gray-200 rounded font-semibold">5rb</button>
-                        <button type="button" onClick={() => setTabunganInputStr('10000')} className="px-2 py-0.5 bg-gray-800 text-gray-200 rounded font-semibold">10rb</button>
-                        <button type="button" onClick={() => setTabunganInputStr('20000')} className="px-2 py-0.5 bg-gray-800 text-gray-200 rounded font-semibold">20rb</button>
-                        <button type="button" onClick={() => setTabunganInputStr('0')} className="px-2 py-0.5 bg-gray-800 text-rose-300 rounded font-semibold">0</button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => applyQuickPreset('tidak_ada')}
+                        className="col-span-2 sm:col-span-1 p-3 rounded-2xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs text-left transition-all space-y-0.5 border border-gray-700"
+                      >
+                        <span className="font-extrabold text-sm text-gray-200">🟡 Tidak Ada / Ditunda</span>
+                        <p className="text-[10px] text-gray-400">Rumah Kosong / Ditunda</p>
+                      </button>
                     </div>
                   </div>
-                </div>
 
-                {/* Big Submit Button */}
-                <button
-                  type="submit"
-                  className="w-full py-3.5 rounded-2xl font-black text-xs sm:text-sm bg-gradient-to-r from-emerald-500 to-teal-400 text-gray-950 hover:from-emerald-400 hover:to-teal-300 shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center space-x-2"
-                >
-                  <Check className="w-5 h-5" />
-                  <span>SIMPAN & LANJUT WARGA BERIKUTNYA ➔</span>
-                </button>
-              </form>
-            );
-          })()}
+                  {/* ADVANCED CUSTOM INPUT FIELDS */}
+                  <div className="pt-2 border-t border-gray-800/80 space-y-3">
+                    <span className="text-[11px] font-bold text-gray-400 block uppercase">
+                      ATAU ISI INPUT NOMINAL CUSTOM (Ketik Manual / Tombol Chip):
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Jimpitan Field */}
+                      <div className="glass-card p-3 rounded-2xl border border-emerald-500/30 space-y-1.5">
+                        <label className="text-[11px] font-bold text-emerald-400 uppercase block">
+                          Nominal Jimpitan (Rp):
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={jimpitanInputStr}
+                          onChange={(e) => setJimpitanInputStr(e.target.value.replace(/[^0-9]/g, ''))}
+                          placeholder="Min 3000..."
+                          className="w-full glass-input px-3 py-2 rounded-xl text-base font-bold text-emerald-300"
+                        />
+                        <div className="flex items-center space-x-1.5 text-[10px]">
+                          <button type="button" onClick={() => setJimpitanInputStr('3000')} className="px-2.5 py-1 bg-emerald-950 text-emerald-300 rounded-lg font-semibold border border-emerald-500/30">3rb (Default)</button>
+                          <button type="button" onClick={() => setJimpitanInputStr('5000')} className="px-2.5 py-1 bg-gray-800 text-gray-200 rounded-lg font-semibold">5rb</button>
+                          <button type="button" onClick={() => setJimpitanInputStr('10000')} className="px-2.5 py-1 bg-gray-800 text-gray-200 rounded-lg font-semibold">10rb</button>
+                        </div>
+                      </div>
+
+                      {/* Tabungan Field */}
+                      <div className="glass-card p-3 rounded-2xl border border-blue-500/30 space-y-1.5">
+                        <label className="text-[11px] font-bold text-blue-400 uppercase block">
+                          Nominal Tabungan (Rp):
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={tabunganInputStr}
+                          onChange={(e) => setTabunganInputStr(e.target.value.replace(/[^0-9]/g, ''))}
+                          placeholder="Tabungan (10000)..."
+                          className="w-full glass-input px-3 py-2 rounded-xl text-base font-bold text-amber-400"
+                        />
+                        <div className="flex items-center space-x-1.5 text-[10px]">
+                          <button type="button" onClick={() => setTabunganInputStr('5000')} className="px-2.5 py-1 bg-gray-800 text-gray-200 rounded-lg font-semibold">5rb</button>
+                          <button type="button" onClick={() => setTabunganInputStr('10000')} className="px-2.5 py-1 bg-gray-800 text-gray-200 rounded-lg font-semibold">10rb</button>
+                          <button type="button" onClick={() => setTabunganInputStr('20000')} className="px-2.5 py-1 bg-gray-800 text-gray-200 rounded-lg font-semibold">20rb</button>
+                          <button type="button" onClick={() => setTabunganInputStr('0')} className="px-2.5 py-1 bg-gray-800 text-rose-300 rounded-lg font-semibold">0</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Big Submit Button */}
+                  <button
+                    type="submit"
+                    className="w-full py-3.5 rounded-2xl font-black text-xs sm:text-sm bg-gradient-to-r from-emerald-500 to-teal-400 text-gray-950 hover:from-emerald-400 hover:to-teal-300 shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center space-x-2"
+                  >
+                    <Save className="w-5 h-5" />
+                    <span>SIMPAN DATA JIMPITAN & CEK POPUP ➔</span>
+                  </button>
+                </form>
+              );
+            })()}
+          </div>
         </div>
       )}
 
@@ -537,9 +671,9 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
               </div>
               <div>
                 <h3 className="text-base font-bold text-white font-heading">
-                  Cek Ulang Jumlah Uang Fisik
+                  Meyakinkan Pengisian Data Sudah Benar
                 </h3>
-                <p className="text-xs text-gray-400">Pastikan uang tunai yang diterima cocok</p>
+                <p className="text-xs text-gray-400">Pastikan uang tunai yang disetorkan sudah cocok</p>
               </div>
             </div>
 
@@ -560,10 +694,15 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
               </div>
 
               <div className="flex justify-between items-center pt-2 border-t border-gray-800">
-                <span className="font-bold text-gray-300">TOTAL FISIK DITERIMA:</span>
+                <span className="font-bold text-gray-300 font-heading">TOTAL FISIK DITERIMA:</span>
                 <span className="font-black text-emerald-400 text-base font-heading">
                   Rp {currentTotalSetoran.toLocaleString('id-ID')}
                 </span>
+              </div>
+
+              <div className="flex justify-between items-center pt-1 text-[11px]">
+                <span className="text-gray-500">Petugas Bertugas:</span>
+                <span className="font-semibold text-emerald-300">{petugasSesi}</span>
               </div>
             </div>
 
@@ -573,7 +712,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                 onClick={() => setShowConfirmModal(false)}
                 className="py-2.5 rounded-xl font-bold text-xs bg-gray-800 text-gray-200 hover:bg-gray-700"
               >
-                ✏️ Edit Lagi
+                ✏️ Edit / Periksa Lagi
               </button>
 
               <button
@@ -590,85 +729,11 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
         </div>
       )}
 
-      {/* 40 WARGA CARDS GRID WITH EDIT BUTTON ON EACH CARD */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {filteredItems.map(item => {
-          const isTaken = item.tx?.status === 'sudah_diambil';
-          const isSelected = selectedWargaId === item.warga.id;
-
-          return (
-            <div
-              key={item.warga.id}
-              onClick={() => handleSelectWarga(item.warga.id)}
-              className={`glass-card p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
-                isSelected
-                  ? 'border-emerald-400 bg-emerald-500/10 ring-2 ring-emerald-500/30'
-                  : isTaken
-                  ? 'border-gray-800 hover:border-gray-700 bg-gray-900/40'
-                  : 'border-amber-500/30 bg-amber-500/5 hover:border-amber-500/50'
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                      {item.warga.kodeWarga}
-                    </span>
-                    <span className="text-[11px] text-gray-400">{item.warga.noRumah}</span>
-                  </div>
-                  <h4 className="text-base font-bold text-white mt-1">{item.warga.nama}</h4>
-                  <p className="text-[11px] text-gray-400">{item.warga.alamat}</p>
-                </div>
-
-                <div>
-                  {isTaken ? (
-                    <span className="p-1 rounded-full bg-emerald-500/20 text-emerald-400 inline-block">
-                      <Check className="w-4 h-4" />
-                    </span>
-                  ) : (
-                    <span className="p-1 rounded-full bg-amber-500/20 text-amber-400 inline-block">
-                      <Clock className="w-4 h-4" />
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Bar & Edit Button */}
-              <div className="mt-3 pt-2 border-t border-gray-800/80 flex items-center justify-between text-xs">
-                {isTaken ? (
-                  <div>
-                    <span className="text-gray-400 block text-[10px]">Total: <b className="text-white">Rp {item.tx?.total.toLocaleString('id-ID')}</b></span>
-                    <span className="text-[10px] text-emerald-400 font-semibold">({item.tx?.jimpitan.toLocaleString('id-ID')} J + {item.tx?.tabungan.toLocaleString('id-ID')} T)</span>
-                  </div>
-                ) : (
-                  <div>
-                    <span className="text-amber-400 font-semibold text-[11px] block">Belum Diambil</span>
-                    <span className="text-[10px] text-gray-500">Tap untuk input</span>
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelectWarga(item.warga.id);
-                  }}
-                  className="px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 transition-all flex items-center space-x-1"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>{isTaken ? '✏️ Edit' : '➕ Input'}</span>
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
       {/* FLOATING ACTION BOTTOM BAR */}
       <div className="fixed bottom-4 left-4 right-4 max-w-2xl mx-auto z-30">
         <div className="glass-panel p-3.5 rounded-2xl border border-emerald-500/40 shadow-2xl flex items-center justify-between bg-gray-950/90 backdrop-blur-xl">
           <div>
-            <p className="text-[10px] uppercase font-bold text-gray-400">Total Sesi Fisik ({tanggalSesi})</p>
+            <p className="text-[10px] uppercase font-bold text-gray-400">Total Fisik ({tanggalSesi})</p>
             <p className="text-lg font-black text-amber-400 font-heading">
               Rp {liveTotalSetoran.toLocaleString('id-ID')}
             </p>
