@@ -105,7 +105,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('kiyu_user');
-    return saved ? JSON.parse(saved) : MOCK_USERS[0];
+    return saved ? JSON.parse(saved) : null;
   });
 
   const [periodeList, setPeriodeList] = useState<PeriodePembukuan[]>(INITIAL_PERIODE);
@@ -155,42 +155,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const login = (username: string, password?: string): { success: boolean; message?: string } => {
     const cleanUser = username.trim().toLowerCase();
 
-    if (cleanUser === 'gemuk ireng' || cleanUser === 'gemukireng' || cleanUser === 'admin') {
-      if (password && password !== 'kiyudan123') {
-        return { success: false, message: 'Password salah! (Password default: kiyudan123)' };
-      }
-      const user = MOCK_USERS[0];
-      setCurrentUser(user);
-      localStorage.setItem('kiyu_user', JSON.stringify(user));
-      addLog('LOGIN', 'Autentikasi', `Super Admin (${user.name}) berhasil login.`);
-      return { success: true };
+    // Password must strictly be kiyudan123
+    if (!password || password.trim() !== 'kiyudan123') {
+      return { success: false, message: 'Password salah! Password resmi pengurus adalah: kiyudan123' };
     }
 
-    const matchedUser = MOCK_USERS.find(u => u.username.toLowerCase() === cleanUser);
+    // Match against official 7 officers list or gemuk ireng alias
+    let matchedUser = MOCK_USERS.find(
+      u => u.username.toLowerCase() === cleanUser || u.name.toLowerCase() === cleanUser
+    );
+
+    if (!matchedUser && (cleanUser === 'gemuk ireng' || cleanUser === 'gemukireng' || cleanUser === 'admin')) {
+      matchedUser = MOCK_USERS[0]; // Slamet Rifaudin
+    }
+
     if (matchedUser) {
-      if (password && password !== 'kiyudan123') {
-        return { success: false, message: 'Password salah! (Password default: kiyudan123)' };
-      }
       setCurrentUser(matchedUser);
       localStorage.setItem('kiyu_user', JSON.stringify(matchedUser));
-      addLog('LOGIN', 'Autentikasi', `User ${matchedUser.name} berhasil login.`);
+      addLog('LOGIN', 'Autentikasi Pengurus', `Pengurus ${matchedUser.name} berhasil login.`);
       return { success: true };
     }
 
-    // Default Fallback
-    if (password && password !== 'kiyudan123') {
-      return { success: false, message: 'Username atau Password salah!' };
-    }
-
-    const user: User = {
+    // Allow custom officer name if password kiyudan123 is valid
+    const customUser: User = {
       id: Date.now(),
-      name: username,
-      username: username,
+      name: username.trim(),
+      username: cleanUser,
       role: 'admin',
     };
-    setCurrentUser(user);
-    localStorage.setItem('kiyu_user', JSON.stringify(user));
-    addLog('LOGIN', 'Autentikasi', `User ${user.name} login.`);
+    setCurrentUser(customUser);
+    localStorage.setItem('kiyu_user', JSON.stringify(customUser));
+    addLog('LOGIN', 'Autentikasi Pengurus', `Pengurus ${customUser.name} berhasil login.`);
     return { success: true };
   };
 

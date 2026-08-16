@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
-  Coins, Wallet, Landmark, FileText, UserCheck, 
-  Lock, LogOut, LayoutDashboard, ShieldCheck, Menu, X, ChevronRight, Home, FileSpreadsheet, AlertCircle 
+  Wallet, Landmark, FileText, UserCheck, 
+  Lock, LogOut, LayoutDashboard, ShieldCheck, Menu, X, ChevronRight, Home, FileSpreadsheet, AlertCircle, Coins 
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -16,8 +16,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   
-  // Credentials as requested: username (gemuk ireng), password (kiyudan123)
-  const [inputUsername, setInputUsername] = useState('gemuk ireng');
+  // Official Officers List (7 Pengurus Resmi Kiyudan)
+  const officialOfficers = [
+    { name: 'Slamet Rifaudin', role: 'Super Admin / Ketua Pemuda' },
+    { name: 'Syarif Suharsono', role: 'Pengurus / Bendahara' },
+    { name: 'Humam Syarif', role: 'Pengurus Lapangan' },
+    { name: 'Afif Dwi Cahyo', role: 'Pengurus Lapangan' },
+    { name: 'Alvin Pratama', role: 'Pengurus Lapangan' },
+    { name: 'Pawit', role: 'Pengurus Lapangan' },
+    { name: 'Khoiruddin', role: 'Pengurus Lapangan' },
+  ];
+
+  const [selectedOfficer, setSelectedOfficer] = useState('Slamet Rifaudin');
+  const [customUsernameInput, setCustomUsernameInput] = useState('');
+  const [isCustomMode, setIsCustomMode] = useState(false);
   const [inputPassword, setInputPassword] = useState('kiyudan123');
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -38,15 +50,31 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
     { id: 'admin-pembukuan', label: 'Pembukuan Tahun', icon: ShieldCheck },
   ];
 
+  const handleTabClick = (tabId: string) => {
+    if (tabId.startsWith('admin') && !currentUser) {
+      setShowLoginModal(true);
+      return;
+    }
+    setActiveTab(tabId);
+    setMobileMenuOpen(false);
+  };
+
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
-    const result = login(inputUsername, inputPassword);
+    const targetUser = isCustomMode ? customUsernameInput : selectedOfficer;
+    
+    if (!targetUser.trim()) {
+      setLoginError('Nama pengurus tidak boleh kosong.');
+      return;
+    }
+
+    const result = login(targetUser, inputPassword);
     if (result.success) {
       setShowLoginModal(false);
       setActiveTab('admin-dashboard');
     } else {
-      setLoginError(result.message || 'Username atau password tidak sesuai.');
+      setLoginError(result.message || 'Password tidak sesuai (Password resmi: kiyudan123).');
     }
   };
 
@@ -59,7 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
             {/* Official Dusun Kiyudan Logo & Brand Header */}
             <div 
               className="flex items-center space-x-3 cursor-pointer group"
-              onClick={() => setActiveTab('home')}
+              onClick={() => handleTabClick('home')}
             >
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-lg shadow-emerald-500/20 border border-emerald-500/30 bg-white p-0.5 group-hover:scale-105 transition-transform duration-300">
                 <img 
@@ -100,7 +128,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
                 return (
                   <button
                     key={link.id}
-                    onClick={() => setActiveTab(link.id)}
+                    onClick={() => handleTabClick(link.id)}
                     className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                       isActive
                         ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold shadow-sm'
@@ -122,12 +150,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span className="text-xs font-semibold text-gray-200">{currentUser.name}</span>
                     <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800/50">
-                      {currentUser.role}
+                      Pengurus
                     </span>
                   </div>
                   
                   <button
-                    onClick={() => setActiveTab('admin-dashboard')}
+                    onClick={() => handleTabClick('admin-dashboard')}
                     className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all ${
                       activeTab.startsWith('admin')
                         ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
@@ -135,7 +163,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
                     }`}
                   >
                     <LayoutDashboard className="w-3.5 h-3.5" />
-                    <span>Admin Panel</span>
+                    <span>Dashboard Admin</span>
                   </button>
 
                   <button
@@ -181,17 +209,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-gray-800 bg-gray-950/95 backdrop-blur-xl px-4 pt-3 pb-6 space-y-3">
             <div className="space-y-1">
-              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">Menu Publik</p>
+              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">Menu Publik (Bisa Diakses Bebas)</p>
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 if (link.isSpecial) return null;
                 return (
                   <button
                     key={link.id}
-                    onClick={() => {
-                      setActiveTab(link.id);
-                      setMobileMenuOpen(false);
-                    }}
+                    onClick={() => handleTabClick(link.id)}
                     className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium ${
                       activeTab === link.id
                         ? 'bg-emerald-500/15 text-emerald-400 font-semibold'
@@ -209,7 +234,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
             </div>
 
             <div className="border-t border-gray-800 pt-3 space-y-1">
-              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-emerald-500 mb-1">Akses Pengurus / Admin</p>
+              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-emerald-500 mb-1">Akses Khusus Pengurus</p>
               {currentUser ? (
                 <>
                   {adminLinks.map((link) => {
@@ -217,10 +242,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
                     return (
                       <button
                         key={link.id}
-                        onClick={() => {
-                          setActiveTab(link.id);
-                          setMobileMenuOpen(false);
-                        }}
+                        onClick={() => handleTabClick(link.id)}
                         className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium ${
                           activeTab === link.id
                             ? 'bg-emerald-600 text-white font-semibold'
@@ -256,7 +278,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
                   className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl text-sm font-bold bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
                 >
                   <Lock className="w-4 h-4" />
-                  <span>Login Admin / Petugas</span>
+                  <span>Login Pengurus Dusun</span>
                 </button>
               )}
             </div>
@@ -264,10 +286,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
         )}
       </header>
 
-      {/* Login Modal */}
+      {/* Login Modal for 7 Official Officers */}
       {showLoginModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="w-full max-w-md glass-panel p-6 sm:p-8 rounded-3xl border border-gray-700 shadow-2xl relative">
+          <div className="w-full max-w-md glass-panel p-6 sm:p-8 rounded-3xl border border-emerald-500/40 shadow-2xl relative">
             <button
               onClick={() => setShowLoginModal(false)}
               className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800"
@@ -280,8 +302,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
                 <img src="/logo.png" alt="Logo Dusun Kiyudan" className="w-full h-full object-contain" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">Login Autentikasi Admin</h3>
-                <p className="text-xs text-gray-400">Masuk untuk mengelola keuangan Dusun Kiyudan</p>
+                <h3 className="text-xl font-bold text-white font-heading">Login Pengurus Dusun</h3>
+                <p className="text-xs text-gray-400">Khusus 7 Pengurus Resmi Dusun Kiyudan</p>
               </div>
             </div>
 
@@ -293,45 +315,77 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
             )}
 
             <form onSubmit={handleLoginSubmit} className="space-y-4">
+              
+              {/* Select Officer Mode vs Manual Custom Input */}
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1.5">
-                  Username Pengurus
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={inputUsername}
-                  onChange={(e) => setInputUsername(e.target.value)}
-                  placeholder="Username (contoh: gemuk ireng)"
-                  className="w-full glass-input px-4 py-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-300">
+                    Pilih Nama Pengurus
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomMode(!isCustomMode)}
+                    className="text-[11px] text-emerald-400 font-semibold hover:underline"
+                  >
+                    {isCustomMode ? '← Pilih dari Daftar Pengurus' : '+ Ketik Nama Lain'}
+                  </button>
+                </div>
+
+                {!isCustomMode ? (
+                  <select
+                    value={selectedOfficer}
+                    onChange={(e) => setSelectedOfficer(e.target.value)}
+                    className="w-full glass-input px-4 py-3 rounded-xl text-sm font-bold text-white focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {officialOfficers.map((off, idx) => (
+                      <option key={off.name} value={off.name} className="bg-gray-900 text-white">
+                        {idx + 1}. {off.name} ({off.role})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    value={customUsernameInput}
+                    onChange={(e) => setCustomUsernameInput(e.target.value)}
+                    placeholder="Ketik nama pengurus..."
+                    className="w-full glass-input px-4 py-3 rounded-xl text-sm font-bold text-white focus:ring-2 focus:ring-emerald-500"
+                  />
+                )}
               </div>
 
+              {/* Password Input */}
               <div>
                 <label className="block text-xs font-semibold text-gray-300 mb-1.5">
-                  Password
+                  Password Pengurus
                 </label>
                 <input
                   type="password"
                   required
                   value={inputPassword}
                   onChange={(e) => setInputPassword(e.target.value)}
-                  placeholder="Password (default: kiyudan123)"
-                  className="w-full glass-input px-4 py-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Masukkan password (kiyudan123)"
+                  className="w-full glass-input px-4 py-3 rounded-xl text-sm font-bold text-amber-300 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
-              <div className="p-3 rounded-xl bg-gray-900/60 border border-gray-800 text-[11px] text-gray-400 space-y-1">
-                <p className="font-semibold text-amber-400">Akses Kredensial Pengurus:</p>
-                <p>• Username: <code className="text-white font-mono bg-gray-800 px-1 py-0.5 rounded">gemuk ireng</code></p>
-                <p>• Password: <code className="text-white font-mono bg-gray-800 px-1 py-0.5 rounded">kiyudan123</code></p>
+              {/* Password info box */}
+              <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/20 text-[11px] text-gray-300 space-y-1">
+                <p className="font-bold text-emerald-400 flex items-center space-x-1">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Kredensial Pengurus Resmi:</span>
+                </p>
+                <p>• Password Pengurus: <code className="text-amber-300 font-mono bg-gray-900 px-1.5 py-0.5 rounded border border-gray-800">kiyudan123</code></p>
+                <p className="text-[10px] text-gray-400 mt-1">*Dashboard admin hanya dapat dibuka setelah login pengurus.</p>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-600/30 hover:from-emerald-500 hover:to-teal-400 transition-all"
+                className="w-full py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-600/30 hover:from-emerald-500 hover:to-teal-400 transition-all flex items-center justify-center space-x-2"
               >
-                Masuk Ke Dashboard Admin
+                <Lock className="w-4 h-4" />
+                <span>MASUK KE DASHBOARD ADMIN</span>
               </button>
             </form>
           </div>

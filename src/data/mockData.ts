@@ -5,9 +5,13 @@ import type {
 } from '../types';
 
 export const MOCK_USERS: User[] = [
-  { id: 1, name: 'Slamet Rahardjo', username: 'gemuk ireng', role: 'admin' },
-  { id: 2, name: 'Budi Santoso', username: 'bendahara', role: 'bendahara' },
-  { id: 3, name: 'Danang Prasetyo', username: 'petugas', role: 'petugas' },
+  { id: 1, name: 'Slamet Rifaudin', username: 'slamet rifaudin', role: 'admin' },
+  { id: 2, name: 'Syarif Suharsono', username: 'syarif suharsono', role: 'admin' },
+  { id: 3, name: 'Humam Syarif', username: 'humam syarif', role: 'admin' },
+  { id: 4, name: 'Afif Dwi Cahyo', username: 'afif dwi cahyo', role: 'admin' },
+  { id: 5, name: 'Alvin Pratama', username: 'alvin pratama', role: 'admin' },
+  { id: 6, name: 'Pawit', username: 'pawit', role: 'admin' },
+  { id: 7, name: 'Khoiruddin', username: 'khoiruddin', role: 'admin' },
 ];
 
 export const RAW_WARGA_NAMES = [
@@ -42,7 +46,7 @@ export const INITIAL_PERIODE: PeriodePembukuan[] = [
     saldoAwalPemuda: 5000000,
     saldoAwalDusun: 10000000,
     closedAt: '2024-12-31 23:59:00',
-    closedBy: 'Slamet Rahardjo',
+    closedBy: 'Slamet Rifaudin',
   },
   {
     id: 2,
@@ -54,7 +58,7 @@ export const INITIAL_PERIODE: PeriodePembukuan[] = [
     saldoAwalPemuda: 10000000,
     saldoAwalDusun: 16000000,
     closedAt: '2025-12-31 23:59:00',
-    closedBy: 'Slamet Rahardjo',
+    closedBy: 'Slamet Rifaudin',
   },
   {
     id: 3,
@@ -102,10 +106,10 @@ export const INITIAL_PENGAMBILAN: PengambilanMingguan[] = [
     totalSetoran: 1490000,
     uangFisik: 1490000,
     selisih: 0,
-    petugasLapangan: 'Danang Prasetyo (Petugas Lapangan)',
+    petugasLapangan: 'Slamet Rifaudin (Ketua Pemuda)',
     catatan: 'Pengambilan lancar, uang fisik cocok 100%.',
     tanggalDisahkan: '2026-08-01 22:30:00',
-    disahkanOleh: 'Budi Santoso',
+    disahkanOleh: 'Syarif Suharsono',
   },
   {
     id: 2,
@@ -120,10 +124,10 @@ export const INITIAL_PENGAMBILAN: PengambilanMingguan[] = [
     totalSetoran: 1654000,
     uangFisik: 1654000,
     selisih: 0,
-    petugasLapangan: 'Danang Prasetyo (Petugas Lapangan)',
+    petugasLapangan: 'Humam Syarif (Pengurus)',
     catatan: '2 warga (Feri & Sugeng) tidak ada di rumah, ditunda ke minggu depan.',
     tanggalDisahkan: '2026-08-08 22:15:00',
-    disahkanOleh: 'Budi Santoso',
+    disahkanOleh: 'Syarif Suharsono',
   },
   {
     id: 3,
@@ -138,10 +142,10 @@ export const INITIAL_PENGAMBILAN: PengambilanMingguan[] = [
     totalSetoran: 1800000,
     uangFisik: 1800000,
     selisih: 0,
-    petugasLapangan: 'Danang Prasetyo (Petugas Lapangan)',
+    petugasLapangan: 'Afif Dwi Cahyo (Pengurus)',
     catatan: 'Termasuk pelunasan jimpitan Feri & Sugeng dari minggu lalu.',
     tanggalDisahkan: '2026-08-15 23:00:00',
-    disahkanOleh: 'Budi Santoso',
+    disahkanOleh: 'Syarif Suharsono',
   },
   {
     id: 4,
@@ -156,7 +160,7 @@ export const INITIAL_PENGAMBILAN: PengambilanMingguan[] = [
     totalSetoran: 1554000,
     uangFisik: 0,
     selisih: 0,
-    petugasLapangan: 'Danang Prasetyo (Petugas Lapangan)',
+    petugasLapangan: 'Slamet Rifaudin (Ketua Pemuda)',
   },
 ];
 
@@ -193,7 +197,7 @@ export const INITIAL_TRANSAKSI_KAS: TransaksiKas[] = [
     tanggal: '2026-08-01',
     nominal: 120000,
     keterangan: 'Pembagian 50% Jimpitan Pengambilan #031',
-    createdBy: 'Budi Santoso',
+    createdBy: 'Syarif Suharsono',
     createdAt: '2026-08-01 22:30:00',
   },
   {
@@ -206,7 +210,7 @@ export const INITIAL_TRANSAKSI_KAS: TransaksiKas[] = [
     tanggal: '2026-08-01',
     nominal: 120000,
     keterangan: 'Pembagian 50% Jimpitan Pengambilan #031',
-    createdBy: 'Budi Santoso',
+    createdBy: 'Syarif Suharsono',
     createdAt: '2026-08-01 22:30:00',
   },
   {
@@ -219,7 +223,7 @@ export const INITIAL_TRANSAKSI_KAS: TransaksiKas[] = [
     tanggal: '2026-08-05',
     nominal: 1500000,
     keterangan: 'Sponsorship Kegiatan HUT RI 81 dari Toko Berkah',
-    createdBy: 'Slamet Rahardjo',
+    createdBy: 'Slamet Rifaudin',
     createdAt: '2026-08-05 14:00:00',
     buktiFoto: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80',
   },
@@ -234,7 +238,7 @@ export const INITIAL_TRANSAKSI_KAS: TransaksiKas[] = [
     nominal: 750000,
     keterangan: 'Pembelian piala dan doorprize lomba anak-anak HUT RI',
     kegiatanId: 1,
-    createdBy: 'Budi Santoso',
+    createdBy: 'Syarif Suharsono',
     createdAt: '2026-08-10 16:30:00',
     buktiFoto: 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?auto=format&fit=crop&w=600&q=80',
   },
@@ -248,7 +252,7 @@ export const INITIAL_TRANSAKSI_KAS: TransaksiKas[] = [
     tanggal: '2026-08-12',
     nominal: 1200000,
     keterangan: 'Perbaikan lampu penerangan jalan utama Dusun Kiyudan',
-    createdBy: 'Budi Santoso',
+    createdBy: 'Humam Syarif',
     createdAt: '2026-08-12 11:00:00',
     buktiFoto: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
   },
@@ -288,7 +292,7 @@ export const INITIAL_PENGUMUMAN: Pengumuman[] = [
 export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   {
     id: 1,
-    username: 'Budi Santoso',
+    username: 'Syarif Suharsono',
     aksi: 'DISAHKAN_PENGAMBILAN',
     modul: 'Pengambilan Mingguan',
     detail: 'Mengesahkan Pengambilan Sesi #033 tanggal 15 Agustus 2026 (Uang Fisik: Rp1.800.000, Selisih: Rp0)',
@@ -296,7 +300,7 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   },
   {
     id: 2,
-    username: 'Slamet Rahardjo',
+    username: 'Slamet Rifaudin',
     aksi: 'INPUT_PEMASUKAN_KAS',
     modul: 'Kas Pemuda',
     detail: 'Menambahkan Pemasukan Kas Pemuda Rp1.500.000 (Sponsorship Toko Berkah)',
