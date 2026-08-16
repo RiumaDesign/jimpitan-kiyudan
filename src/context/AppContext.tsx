@@ -110,7 +110,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : null;
   });
 
-  // LocalStorage-backed state initializers for persistent storage
+  // LocalStorage-backed state initializers with strict deduplication
   const [periodeList, setPeriodeList] = useState<PeriodePembukuan[]>(() => {
     const saved = localStorage.getItem('kiyu_periode');
     return saved ? JSON.parse(saved) : INITIAL_PERIODE;
@@ -128,31 +128,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : INITIAL_PESERTA;
   });
 
+  // Deduplicate PengambilanList by nomorPengambilan / id
   const [pengambilanList, setPengambilanList] = useState<PengambilanMingguan[]>(() => {
     const saved = localStorage.getItem('kiyu_pengambilan');
-    return saved ? JSON.parse(saved) : INITIAL_PENGAMBILAN;
+    const raw: PengambilanMingguan[] = saved ? JSON.parse(saved) : INITIAL_PENGAMBILAN;
+    
+    const map = new Map<number, PengambilanMingguan>();
+    raw.forEach(item => {
+      if (!map.has(item.nomorPengambilan)) {
+        map.set(item.nomorPengambilan, item);
+      } else {
+        // Keep whichever item has higher totalSudahDiambil or disahkan status
+        const existing = map.get(item.nomorPengambilan)!;
+        if (item.totalSudahDiambil >= existing.totalSudahDiambil) {
+          map.set(item.nomorPengambilan, item);
+        }
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.nomorPengambilan - b.nomorPengambilan);
   });
 
+  // Deduplicate TransaksiPengambilanList by composite key (pengambilanId_wargaId)
   const [transaksiPengambilanList, setTransaksiPengambilanList] = useState<TransaksiPengambilan[]>(() => {
     const saved = localStorage.getItem('kiyu_tx_pengambilan');
-    if (saved) return JSON.parse(saved);
-
-    const items: TransaksiPengambilan[] = [];
-    let idCounter = 1;
-    INITIAL_WARGA.forEach((w, idx) => {
-      const isTaken = idx < 68;
-      items.push({
-        id: idCounter++,
-        pengambilanId: 4,
-        wargaId: w.id,
-        jimpitan: isTaken ? 3000 : 0,
-        tabungan: isTaken ? (idx % 3 === 0 ? 20000 : idx % 2 === 0 ? 10000 : 5000) : 0,
-        total: isTaken ? (3000 + (idx % 3 === 0 ? 20000 : idx % 2 === 0 ? 10000 : 5000)) : 0,
-        status: isTaken ? 'sudah_diambil' : 'belum_dikunjungi',
-        waktuPengambilan: isTaken ? '2026-08-22 20:15:00' : undefined,
+    let raw: TransaksiPengambilan[] = [];
+    if (saved) {
+      raw = JSON.parse(saved);
+    } else {
+      let idCounter = 1;
+      INITIAL_WARGA.forEach((w, idx) => {
+        const isTaken = idx < 68;
+        raw.push({
+          id: idCounter++,
+          pengambilanId: 4,
+          wargaId: w.id,
+          jimpitan: isTaken ? 3000 : 0,
+          tabungan: isTaken ? (idx % 3 === 0 ? 20000 : idx % 2 === 0 ? 10000 : 5000) : 0,
+          total: isTaken ? (3000 + (idx % 3 === 0 ? 20000 : idx % 2 === 0 ? 10000 : 5000)) : 0,
+          status: isTaken ? 'sudah_diambil' : 'belum_dikunjungi',
+          waktuPengambilan: isTaken ? '2026-08-22 20:15:00' : undefined,
+        });
       });
+    }
+
+    const map = new Map<string, TransaksiPengambilan>();
+    raw.forEach(item => {
+      const key = `${item.pengambilanId}_${item.wargaId}`;
+      map.set(key, item);
     });
-    return items;
+    return Array.from(map.values());
   });
 
   const [transaksiKasList, setTransaksiKasList] = useState<TransaksiKas[]>(() => {
@@ -172,7 +196,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
   });
 
-  // Automatically persist all state modifications to LocalStorage
+  // Auto-persist state to LocalStorage
   useEffect(() => { localStorage.setItem('kiyu_periode', JSON.stringify(periodeList)); }, [periodeList]);
   useEffect(() => { localStorage.setItem('kiyu_warga', JSON.stringify(wargaList)); }, [wargaList]);
   useEffect(() => { localStorage.setItem('kiyu_peserta', JSON.stringify(pesertaList)); }, [pesertaList]);
@@ -330,43 +354,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const total = jimpitan + tabungan;
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
+    let updatedTxList: TransaksiPengambilan[] = [];
+
+    // Strictly deduplicate: remove previous entry for this exact (pengambilanId, wargaId)
     setTransaksiPengambilanList(prev => {
-      const existingIdx = prev.findIndex(t => t.pengambilanId === pengambilanId && t.wargaId === wargaId);
-      if (existingIdx >= 0) {
-        const copy = [...prev];
-        copy[existingIdx] = {
-          ...copy[existingIdx],
-          jimpitan: status === 'sudah_diambil' ? jimpitan : 0,
-          tabungan: status === 'sudah_diambil' ? tabungan : 0,
-          total: status === 'sudah_diambil' ? total : 0,
-          status,
-          waktuPengambilan: now,
-          keterangan,
-        };
-        return copy;
-      } else {
-        return [...prev, {
-          id: Date.now(),
-          pengambilanId,
-          wargaId,
-          jimpitan: status === 'sudah_diambil' ? jimpitan : 0,
-          tabungan: status === 'sudah_diambil' ? tabungan : 0,
-          total: status === 'sudah_diambil' ? total : 0,
-          status,
-          waktuPengambilan: now,
-          keterangan,
-        }];
-      }
+      const cleaned = prev.filter(t => !(t.pengambilanId === pengambilanId && t.wargaId === wargaId));
+      const newEntry: TransaksiPengambilan = {
+        id: Date.now(),
+        pengambilanId,
+        wargaId,
+        jimpitan: status === 'sudah_diambil' ? jimpitan : 0,
+        tabungan: status === 'sudah_diambil' ? tabungan : 0,
+        total: status === 'sudah_diambil' ? total : 0,
+        status,
+        waktuPengambilan: now,
+        keterangan,
+      };
+      updatedTxList = [...cleaned, newEntry];
+      return updatedTxList;
     });
 
+    // Update PengambilanList using the fresh updatedTxList to prevent stale closure duplicates
     setPengambilanList(prev => prev.map(p => {
       if (p.id === pengambilanId) {
-        const sessionTx = transaksiPengambilanList.filter(t => t.pengambilanId === pengambilanId && t.wargaId !== wargaId);
-        const newWargaTx = { jimpitan: status === 'sudah_diambil' ? jimpitan : 0, tabungan: status === 'sudah_diambil' ? tabungan : 0 };
-        
-        const countSudah = sessionTx.filter(t => t.status === 'sudah_diambil').length + (status === 'sudah_diambil' ? 1 : 0);
-        const sumJimpitan = sessionTx.reduce((acc, t) => acc + (t.status === 'sudah_diambil' ? t.jimpitan : 0), 0) + newWargaTx.jimpitan;
-        const sumTabungan = sessionTx.reduce((acc, t) => acc + (t.status === 'sudah_diambil' ? t.tabungan : 0), 0) + newWargaTx.tabungan;
+        const sessionTx = updatedTxList.filter(t => t.pengambilanId === pengambilanId && t.status === 'sudah_diambil');
+        const countSudah = sessionTx.length;
+        const sumJimpitan = sessionTx.reduce((acc, t) => acc + t.jimpitan, 0);
+        const sumTabungan = sessionTx.reduce((acc, t) => acc + t.tabungan, 0);
         const sumTotal = sumJimpitan + sumTabungan;
 
         return {
@@ -437,8 +451,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdBy: currentUser ? currentUser.name : 'System',
     }));
 
-    setTransaksiKasList(prev => [...prev, kasPemudaTx, kasDusunTx]);
-    setTransaksiTabunganList(prev => [...prev, ...newSavingsItems]);
+    // Prevent duplicate kas entries for the same session
+    setTransaksiKasList(prev => {
+      const cleaned = prev.filter(t => !(t.periodeId === targetSession.periodeId && t.kategoriId === 1 && t.keterangan.includes(`Sesi #${targetSession.nomorPengambilan}`)));
+      return [kasPemudaTx, kasDusunTx, ...cleaned];
+    });
+
+    // Prevent duplicate tabungan entries for the same session
+    setTransaksiTabunganList(prev => {
+      const cleaned = prev.filter(t => t.pengambilanId !== pengambilanId);
+      return [...newSavingsItems, ...cleaned];
+    });
 
     setPengambilanList(prev => prev.map(p => {
       if (p.id === pengambilanId) {
@@ -704,9 +727,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   };
 
+  // Safe Session Creation: Reuse active session or create next session number without duplicates
   const createPengambilanMingguanBaru = (): PengambilanMingguan => {
-    const newSessionNum = pengambilanList.length + 1;
+    const activeSession = pengambilanList.find(p => p.status === 'berjalan');
+    if (activeSession) {
+      return activeSession;
+    }
+
+    const maxNum = pengambilanList.reduce((max, p) => Math.max(max, p.nomorPengambilan), 0);
+    const newSessionNum = maxNum + 1;
     const today = new Date().toISOString().split('T')[0];
+
     const newSession: PengambilanMingguan = {
       id: Date.now(),
       periodeId: currentPeriode.id,
@@ -723,7 +754,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       petugasLapangan: currentUser ? `${currentUser.name} (Petugas Lapangan)` : 'Humam Syarif (Ketua Pemuda)',
     };
 
-    setPengambilanList(prev => [newSession, ...prev]);
+    setPengambilanList(prev => {
+      const exists = prev.some(p => p.nomorPengambilan === newSessionNum || p.id === newSession.id);
+      if (exists) return prev;
+      return [newSession, ...prev];
+    });
 
     addLog('PENGAMBILAN_BARU', 'Pengambilan Mingguan', `Membuka Sesi Pengambilan Mingguan #${newSessionNum}`);
     return newSession;
