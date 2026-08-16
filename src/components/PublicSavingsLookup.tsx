@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wallet, Search, ShieldCheck, ArrowDownRight, ArrowUpRight, X, AlertCircle, Printer, RefreshCw } from 'lucide-react';
+import { Wallet, Search, ShieldCheck, ArrowDownRight, ArrowUpRight, X, AlertCircle, Printer, RefreshCw, Sparkles } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useApp } from '../context/AppContext';
@@ -11,11 +11,12 @@ interface SavingsModalProps {
 }
 
 export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClose }) => {
-  const { lookupTabunganPublik, currentPeriode, transaksiPengambilanList, pengambilanList } = useApp();
+  const { lookupTabunganPublik, currentPeriode, transaksiPengambilanList, pengambilanList, wargaList } = useApp();
   const [nama, setNama] = useState('Anwari');
   const [kodeWarga, setKodeWarga] = useState('KDY-001');
   const [filterBulan, setFilterBulan] = useState<number | 'semua'>('semua');
   const [isExporting, setIsExporting] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [searchResult, setSearchResult] = useState<{
     searched: boolean;
@@ -42,9 +43,20 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
     { value: 12, label: 'Desember' },
   ];
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = lookupTabunganPublik(nama, kodeWarga);
+  // Matching registered warga suggestions
+  const suggestedWargaList = wargaList.filter(w => {
+    if (!nama.trim()) return false;
+    const term = nama.trim().toLowerCase();
+    return w.nama.toLowerCase().includes(term) ||
+           w.kodeWarga.toLowerCase().includes(term) ||
+           w.noRumah.toLowerCase().includes(term);
+  });
+
+  const executeLookup = (targetNama: string, targetKode: string) => {
+    setNama(targetNama);
+    setKodeWarga(targetKode);
+    setShowSuggestions(false);
+    const res = lookupTabunganPublik(targetNama, targetKode);
     setSearchResult({
       searched: true,
       found: res.found,
@@ -52,6 +64,15 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
       saldoTotal: res.saldoTotal,
       history: res.history,
     });
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    executeLookup(nama, kodeWarga);
+  };
+
+  const handleSelectSuggestedWarga = (w: Warga) => {
+    executeLookup(w.nama, w.kodeWarga);
   };
 
   // Personal PDF Generator
@@ -215,14 +236,14 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
 
           doc.setFont('Helvetica', 'bold');
           doc.text(warga.nama, col1, finalY + 18);
-          doc.text('Danang Prasetyo', col2, finalY + 18);
-          doc.text('Budi Santoso', col3, finalY + 18);
+          doc.text('Humam Syarif', col2, finalY + 18);
+          doc.text('Syarif Suharsono', col3, finalY + 18);
 
           doc.setFont('Helvetica', 'normal');
           doc.setFontSize(8);
           doc.setTextColor(100, 116, 139);
           doc.text(`Kode: ${warga.kodeWarga}`, col1, finalY + 22);
-          doc.text('Tim Keliling Lapangan', col2, finalY + 22);
+          doc.text('Ketua Pemuda Kiyudan', col2, finalY + 22);
           doc.text('Pengelola Keuangan', col3, finalY + 22);
         }
 
@@ -257,31 +278,74 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
               Cek Tabungan Mandiri Warga
             </h2>
             <p className="text-xs sm:text-sm text-gray-400">
-              Masukkan Nama Warga dan Kode Warga untuk membuka saldo pribadi & cetak kartu laporan
+              Ketik nama Anda di bawah ini, pilih nama yang terdaftar, maka Kode Warga akan otomatis terisi!
             </p>
           </div>
         </div>
 
-        {/* Search Form */}
+        {/* Search Form with Smart Autocomplete & Auto-Fill Kode Warga */}
         <form onSubmit={handleSearch} className="glass-card p-4 sm:p-5 rounded-2xl border border-gray-800 mb-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1.5">
-                Nama Lengkap Warga
+            
+            {/* Nama Warga with Floating Suggestions */}
+            <div className="relative">
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center justify-between">
+                <span>Nama Lengkap Warga</span>
+                <span className="text-[10px] text-emerald-400 font-bold flex items-center space-x-1">
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  <span>Autofill Otomatis</span>
+                </span>
               </label>
+
               <input
                 type="text"
                 required
                 value={nama}
-                onChange={(e) => setNama(e.target.value)}
-                placeholder="Contoh: Anwari"
-                className="w-full glass-input px-4 py-2.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-amber-500"
+                onFocus={() => setShowSuggestions(true)}
+                onChange={(e) => {
+                  setNama(e.target.value);
+                  setShowSuggestions(true);
+                  // Auto-lookup matching exact name if found
+                  const exact = wargaList.find(w => w.nama.toLowerCase() === e.target.value.trim().toLowerCase());
+                  if (exact) {
+                    setKodeWarga(exact.kodeWarga);
+                  }
+                }}
+                placeholder="Ketik nama Anda (contoh: Anwari)..."
+                className="w-full glass-input px-4 py-2.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-amber-500 text-white"
               />
+
+              {/* Autocomplete Floating Dropdown */}
+              {showSuggestions && suggestedWargaList.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-gray-900 border border-amber-500/40 rounded-2xl shadow-2xl overflow-hidden max-h-56 overflow-y-auto animate-fadeIn">
+                  <div className="px-3 py-1.5 bg-gray-950 border-b border-gray-800 text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>Saran Nama Terdaftar</span>
+                    <span>{suggestedWargaList.length} Nama</span>
+                  </div>
+
+                  {suggestedWargaList.map(w => (
+                    <div
+                      key={w.id}
+                      onClick={() => handleSelectSuggestedWarga(w)}
+                      className="p-3 border-b border-gray-800/60 hover:bg-amber-500/20 cursor-pointer flex items-center justify-between transition-colors"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[10px] font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded">
+                          {w.kodeWarga}
+                        </span>
+                        <span className="text-xs font-bold text-white">{w.nama}</span>
+                      </div>
+                      <span className="text-[10px] text-gray-400">{w.noRumah}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
+            {/* Kode Warga Auto-Filled */}
             <div>
               <label className="block text-xs font-semibold text-gray-300 mb-1.5">
-                Kode Warga (KDY-xxx)
+                Kode Warga (Otomatis Terisi)
               </label>
               <input
                 type="text"
@@ -289,12 +353,12 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
                 value={kodeWarga}
                 onChange={(e) => setKodeWarga(e.target.value.toUpperCase())}
                 placeholder="Contoh: KDY-001"
-                className="w-full glass-input px-4 py-2.5 rounded-xl text-sm font-semibold tracking-wider uppercase focus:ring-2 focus:ring-amber-500"
+                className="w-full glass-input px-4 py-2.5 rounded-xl text-sm font-black tracking-wider uppercase focus:ring-2 focus:ring-amber-500 text-amber-400 bg-gray-900/60"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
             <div className="flex items-center space-x-1.5 text-[11px] text-gray-400">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>Privasi terjamin: Saldo warga lain tetap terlindungi</span>
@@ -302,10 +366,10 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
 
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-gray-950 shadow-lg shadow-amber-500/20 transition-all flex items-center space-x-2"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-gray-950 shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center space-x-2"
             >
               <Search className="w-4 h-4" />
-              <span>Cek Saldo</span>
+              <span>Cek Saldo Tabungan</span>
             </button>
           </div>
         </form>
@@ -318,7 +382,7 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
                 <AlertCircle className="w-10 h-10 text-rose-400 mx-auto" />
                 <h4 className="text-base font-bold text-rose-200">Data Warga Tidak Ditemukan</h4>
                 <p className="text-xs text-rose-300/80 max-w-md mx-auto">
-                  Nama Warga &quot;{nama}&quot; dan Kode Warga &quot;{kodeWarga}&quot; tidak cocok. Pastikan ejaan nama dan kode sesuai (contoh: Anwari & KDY-001).
+                  Nama Warga &quot;{nama}&quot; dan Kode Warga &quot;{kodeWarga}&quot; tidak cocok. Silakan ketik ulang nama Anda di atas dan pilih dari saran nama yang muncul.
                 </p>
               </div>
             ) : (
