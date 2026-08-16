@@ -72,9 +72,23 @@ export const PublicJimpitan: React.FC = () => {
     return true;
   });
 
+  // Dynamic live calculation from transaksiPengambilanList for the selected session
+  const activeSessionTxList = (transaksiPengambilanList || []).filter(
+    t => t.pengambilanId === activeSession?.id && t.status === 'sudah_diambil'
+  );
+  const liveCountSudah = activeSessionTxList.length;
+  const liveTotalJimpitan = activeSessionTxList.reduce((sum, t) => sum + (t.jimpitan || 0), 0);
+  const liveTotalTabungan = activeSessionTxList.reduce((sum, t) => sum + (t.tabungan || 0), 0);
+  const liveTotalSetoran = liveTotalJimpitan + liveTotalTabungan;
+
+  const sessionCountSudah = liveCountSudah > 0 ? liveCountSudah : (activeSession?.totalSudahDiambil || 0);
+  const sessionTotalJimpitan = (liveCountSudah > 0 || liveTotalJimpitan > 0) ? liveTotalJimpitan : (activeSession?.totalJimpitan || 0);
+  const sessionTotalTabungan = (liveCountSudah > 0 || liveTotalTabungan > 0) ? liveTotalTabungan : (activeSession?.totalTabungan || 0);
+  const sessionTotalSetoran = (liveCountSudah > 0 || liveTotalSetoran > 0) ? liveTotalSetoran : (activeSession?.totalSetoran || 0);
+
   // Calculate totals for active session & filtered warga
-  const sessionSplitPemuda = activeSession ? Math.floor(activeSession.totalJimpitan / 2) : 0;
-  const sessionSplitDusun = activeSession ? Math.floor(activeSession.totalJimpitan / 2) : 0;
+  const sessionSplitPemuda = Math.floor(sessionTotalJimpitan / 2);
+  const sessionSplitDusun = Math.floor(sessionTotalJimpitan / 2);
 
   return (
     <div className="space-y-6 animate-fadeIn pb-16">
@@ -249,19 +263,19 @@ export const PublicJimpitan: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-1">
             <div className="bg-gray-900/90 p-3 rounded-2xl border border-gray-800">
               <p className="text-[10px] text-gray-400 uppercase font-semibold">Prosentase Diambil</p>
-              <p className="font-bold text-white text-sm mt-0.5">{activeSession.totalSudahDiambil} / {activeSession.totalWarga} KK</p>
+              <p className="font-bold text-white text-sm mt-0.5">{sessionCountSudah} / {activeSession.totalWarga} KK</p>
             </div>
             <div className="bg-gray-900/90 p-3 rounded-2xl border border-gray-800">
               <p className="text-[10px] text-gray-400 uppercase font-semibold">Total Jimpitan Sesi</p>
-              <p className="font-bold text-amber-400 text-sm mt-0.5">Rp {activeSession.totalJimpitan.toLocaleString('id-ID')}</p>
+              <p className="font-bold text-amber-400 text-sm mt-0.5">Rp {sessionTotalJimpitan.toLocaleString('id-ID')}</p>
             </div>
             <div className="bg-gray-900/90 p-3 rounded-2xl border border-gray-800">
               <p className="text-[10px] text-gray-400 uppercase font-semibold">Total Tabungan Sesi</p>
-              <p className="font-bold text-blue-400 text-sm mt-0.5">Rp {activeSession.totalTabungan.toLocaleString('id-ID')}</p>
+              <p className="font-bold text-blue-400 text-sm mt-0.5">Rp {sessionTotalTabungan.toLocaleString('id-ID')}</p>
             </div>
             <div className="bg-gray-900/90 p-3 rounded-2xl border border-emerald-500/30">
               <p className="text-[10px] text-emerald-400 uppercase font-semibold">Total Setoran Fisik</p>
-              <p className="font-black text-emerald-400 text-base mt-0.5 font-heading">Rp {activeSession.totalSetoran.toLocaleString('id-ID')}</p>
+              <p className="font-black text-emerald-400 text-base mt-0.5 font-heading">Rp {sessionTotalSetoran.toLocaleString('id-ID')}</p>
             </div>
           </div>
 
@@ -377,16 +391,16 @@ export const PublicJimpitan: React.FC = () => {
                     TOTAL SETORAN SESI #{activeSession.nomorPengambilan}:
                   </td>
                   <td className="p-4 text-right text-amber-400 font-bold">
-                    Rp {activeSession.totalJimpitan.toLocaleString('id-ID')}
+                    Rp {sessionTotalJimpitan.toLocaleString('id-ID')}
                   </td>
                   <td className="p-4 text-right text-blue-400 font-bold">
-                    Rp {activeSession.totalTabungan.toLocaleString('id-ID')}
+                    Rp {sessionTotalTabungan.toLocaleString('id-ID')}
                   </td>
                   <td className="p-4 text-right text-emerald-400 font-black text-sm font-heading">
-                    Rp {activeSession.totalSetoran.toLocaleString('id-ID')}
+                    Rp {sessionTotalSetoran.toLocaleString('id-ID')}
                   </td>
                   <td className="p-4 text-center text-xs text-gray-400">
-                    {activeSession.totalSudahDiambil} / {activeSession.totalWarga} KK
+                    {sessionCountSudah} / {activeSession.totalWarga} KK
                   </td>
                 </tr>
               </tfoot>

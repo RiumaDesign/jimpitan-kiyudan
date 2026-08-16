@@ -16,7 +16,12 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
     transaksiPengambilanList, savePengambilanWargaItem, updatePengambilanSessionMetadata, currentUser 
   } = useApp();
 
-  const activeSession = pengambilanList.find(p => p.status === 'berjalan') || pengambilanList[pengambilanList.length - 1];
+  const [selectedSessionId, setSelectedSessionId] = useState<number>(() => {
+    const running = pengambilanList.find(p => p.status === 'berjalan');
+    return running ? running.id : (pengambilanList.length > 0 ? pengambilanList[pengambilanList.length - 1].id : 4);
+  });
+
+  const activeSession = pengambilanList.find(p => p.id === selectedSessionId) || pengambilanList[pengambilanList.length - 1];
   const activeParticipants = pesertaList.filter(p => p.periodeId === currentPeriode.id && p.status === 'aktif');
 
   const defaultOfficer = currentUser ? `${currentUser.name}` : 'Kelompok SATU';
@@ -28,8 +33,10 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
   const [isSavedMetadata, setIsSavedMetadata] = useState<boolean>(false);
 
   useEffect(() => {
-    setTanggalSesi(activeSession.tanggalPengambilan || new Date().toISOString().split('T')[0]);
-    setPetugasSesi(activeSession.petugasLapangan || defaultOfficer);
+    if (activeSession) {
+      setTanggalSesi(activeSession.tanggalPengambilan || new Date().toISOString().split('T')[0]);
+      setPetugasSesi(activeSession.petugasLapangan || defaultOfficer);
+    }
   }, [activeSession, currentUser]);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -205,6 +212,21 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
         {/* Collapsible Metadata Form */}
         {showMetadataPanel && (
           <div className="p-4 rounded-2xl bg-gray-900/90 border border-emerald-500/30 space-y-3 animate-fadeIn">
+            <div>
+              <label className="block text-[11px] font-bold text-amber-300 mb-1">Pilih Sesi Pengambilan / Entry:</label>
+              <select
+                value={selectedSessionId}
+                onChange={(e) => setSelectedSessionId(Number(e.target.value))}
+                className="w-full glass-input px-3 py-2 rounded-xl text-xs font-black text-amber-300 bg-gray-900 border border-amber-500/40"
+              >
+                {pengambilanList.map(s => (
+                  <option key={s.id} value={s.id}>
+                    Sesi #{s.nomorPengambilan} — {s.tanggalPengambilan} ({s.status === 'disahkan' ? '🟢 Disahkan' : '🟡 Berjalan'}) — PJ: {s.petugasLapangan || 'Kelompok SATU'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-gray-300 mb-1">Tanggal Pengambilan / Entry</label>

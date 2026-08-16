@@ -159,34 +159,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return Array.from(map.values()).sort((a, b) => a.nomorPengambilan - b.nomorPengambilan);
   });
 
-  // TransaksiPengambilanList mapped to 40 citizens for Sesi #4 (Agustus 2026)
+  // TransaksiPengambilanList mapped to 40 citizens for Sesi #1, #2, #3, and #4 (Agustus 2026)
   const [transaksiPengambilanList, setTransaksiPengambilanList] = useState<TransaksiPengambilan[]>(() => {
     const saved = localStorage.getItem('kiyu_tx_pengambilan');
-    let raw: TransaksiPengambilan[] = [];
-    if (saved) {
-      raw = JSON.parse(saved);
-    } else {
-      let idCounter = 1;
-      INITIAL_WARGA.forEach((w, idx) => {
-        const isTaken = idx < 32; // 32 taken out of 40
-        raw.push({
-          id: idCounter++,
-          pengambilanId: 4,
-          wargaId: w.id,
-          jimpitan: isTaken ? 3000 : 0,
-          tabungan: isTaken ? (idx % 3 === 0 ? 20000 : idx % 2 === 0 ? 10000 : 5000) : 0,
-          total: isTaken ? (3000 + (idx % 3 === 0 ? 20000 : idx % 2 === 0 ? 10000 : 5000)) : 0,
-          status: isTaken ? 'sudah_diambil' : 'belum_dikunjungi',
-          waktuPengambilan: isTaken ? '2026-08-22 20:15:00' : undefined,
-        });
-      });
-    }
+    let raw: TransaksiPengambilan[] = saved ? JSON.parse(saved) : [];
 
     const map = new Map<string, TransaksiPengambilan>();
     raw.forEach(item => {
       const key = `${item.pengambilanId}_${item.wargaId}`;
       map.set(key, item);
     });
+
+    let idCounter = 1000;
+    // Ensure all 4 sessions (Sesi 1, 2, 3, 4) have baseline entries for all 40 citizens
+    const sessionConfigs = [
+      { id: 1, date: '2026-08-01 20:00:00', allTaken: true },
+      { id: 2, date: '2026-08-08 20:00:00', allTaken: true },
+      { id: 3, date: '2026-08-15 20:00:00', allTaken: true },
+      { id: 4, date: '2026-08-22 20:00:00', allTaken: false },
+    ];
+
+    sessionConfigs.forEach(cfg => {
+      INITIAL_WARGA.forEach((w, idx) => {
+        const key = `${cfg.id}_${w.id}`;
+        if (!map.has(key)) {
+          const isTaken = cfg.allTaken || (idx < 32);
+          const tabunganNominal = isTaken ? (idx % 3 === 0 ? 20000 : idx % 2 === 0 ? 10000 : 5000) : 0;
+          const jimpitanNominal = isTaken ? 3000 : 0;
+
+          map.set(key, {
+            id: idCounter++,
+            pengambilanId: cfg.id,
+            wargaId: w.id,
+            jimpitan: jimpitanNominal,
+            tabungan: tabunganNominal,
+            total: jimpitanNominal + tabunganNominal,
+            status: isTaken ? 'sudah_diambil' : 'belum_dikunjungi',
+            waktuPengambilan: isTaken ? cfg.date : undefined,
+          });
+        }
+      });
+    });
+
     return Array.from(map.values());
   });
 

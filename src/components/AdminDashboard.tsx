@@ -13,7 +13,7 @@ interface AdminDashboardProps {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab, openReconcileModal }) => {
   const { 
     currentUser, currentPeriode, getSaldoKasPemuda, 
-    getSaldoKasDusun, getTotalTabunganDusun, pengambilanList, auditLogs,
+    getSaldoKasDusun, getTotalTabunganDusun, pengambilanList, transaksiPengambilanList, auditLogs,
     exportDatabaseBackup, importDatabaseBackup
   } = useApp();
 
@@ -24,6 +24,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab, op
   const totalTabungan = getTotalTabunganDusun();
 
   const activeSession = pengambilanList.find(p => p.status === 'berjalan') || pengambilanList[pengambilanList.length - 1];
+  const activeSessionTx = activeSession 
+    ? (transaksiPengambilanList || []).filter(t => t.pengambilanId === activeSession.id && t.status === 'sudah_diambil')
+    : [];
+  const activeSessionCountSudah = activeSessionTx.length > 0 ? activeSessionTx.length : (activeSession?.totalSudahDiambil || 0);
 
   const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -126,7 +130,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab, op
             <UserCheck className="w-4 h-4" />
           </div>
           <p className="text-2xl font-black text-white font-heading mt-2">
-            {activeSession?.totalSudahDiambil} / {activeSession?.totalWarga} Warga
+            {activeSessionCountSudah} / {activeSession?.totalWarga || 40} Warga
           </p>
           <p className="text-[11px] text-amber-400 font-semibold capitalize mt-1">Status: {activeSession?.status.replace('_', ' ')}</p>
         </div>
