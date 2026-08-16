@@ -215,7 +215,7 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
         const tableBody = citizenWeeklyHistory.map((item, idx) => [
           String(idx + 1),
           item.tanggalPengambilan,
-          item.kelompok.split('(')[0],
+          (item.kelompok || 'Kelompok SATU').split('(')[0].trim(),
           item.isTaken ? `Rp ${item.jimpitan.toLocaleString('id-ID')}` : 'Rp 0',
           item.isTaken ? `Rp ${item.tabungan.toLocaleString('id-ID')}` : 'Rp 0',
           item.isTaken ? `Rp ${item.total.toLocaleString('id-ID')}` : 'Rp 0',
@@ -592,7 +592,7 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
                                 <td className="p-3.5 font-extrabold text-amber-300 whitespace-nowrap">
                                   <div className="flex items-center space-x-1.5">
                                     <Users className="w-3.5 h-3.5 text-emerald-400" />
-                                    <span>{item.kelompok.split('(')[0]}</span>
+                                    <span>{(item.kelompok || 'Kelompok SATU').split('(')[0].trim()}</span>
                                   </div>
                                 </td>
 

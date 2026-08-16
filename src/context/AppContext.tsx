@@ -140,22 +140,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : INITIAL_PESERTA;
   });
 
-  // Deduplicate PengambilanList for rotating 4 groups schedule in August 2026
+  // Deduplicate and sanitize PengambilanList for rotating 4 groups schedule in August 2026
   const [pengambilanList, setPengambilanList] = useState<PengambilanMingguan[]>(() => {
-    const saved = localStorage.getItem('kiyu_pengambilan');
-    const raw: PengambilanMingguan[] = saved ? JSON.parse(saved) : INITIAL_PENGAMBILAN;
-    
     const map = new Map<number, PengambilanMingguan>();
-    raw.forEach(item => {
-      if (!map.has(item.id)) {
-        map.set(item.id, item);
-      } else {
-        const existing = map.get(item.id)!;
-        if (item.totalSudahDiambil >= existing.totalSudahDiambil) {
-          map.set(item.id, item);
-        }
+    INITIAL_PENGAMBILAN.forEach(item => map.set(item.id, { ...item }));
+
+    const saved = localStorage.getItem('kiyu_pengambilan');
+    if (saved) {
+      try {
+        const parsed: PengambilanMingguan[] = JSON.parse(saved);
+        parsed.forEach(item => {
+          const defaultItem = map.get(item.id);
+          map.set(item.id, {
+            ...defaultItem,
+            ...item,
+            petugasLapangan: item.petugasLapangan || defaultItem?.petugasLapangan || 'Kelompok SATU (Armi, Apep, Fadel, Khabib, Uzik, Ihsan)',
+            totalWarga: item.totalWarga || 40,
+            tanggalPengambilan: item.tanggalPengambilan || defaultItem?.tanggalPengambilan || '2026-08-01',
+          });
+        });
+      } catch (e) {
+        console.error(e);
       }
-    });
+    }
     return Array.from(map.values()).sort((a, b) => a.id - b.id);
   });
 

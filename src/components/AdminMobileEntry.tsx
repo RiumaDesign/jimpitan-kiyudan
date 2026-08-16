@@ -792,7 +792,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
             <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-1">
               <p className="font-bold">⚠️ Sesuai Aturan Sistem Baku Dusun Kiyudan:</p>
               <p className="text-[11px] text-gray-300 leading-relaxed">
-                Penundaan ke <b>Malam Senin</b> dilakukan oleh <b>kelompok yang sama ({petugasSesi.split('(')[0]})</b> dan <b>tidak akan mengubah urutan rotasi</b> kelompok pada minggu berikutnya.
+                Penundaan ke <b>Malam Senin</b> dilakukan oleh <b>kelompok yang sama ({(petugasSesi || 'Kelompok').split('(')[0].trim()})</b> dan <b>tidak akan mengubah urutan rotasi</b> kelompok pada minggu berikutnya.
               </p>
             </div>
 

@@ -76,17 +76,16 @@ function MainApp() {
               </div>
 
               <div className="p-4 rounded-2xl bg-gray-900/80 border border-gray-800 text-xs text-left space-y-1.5">
-                <p className="font-bold text-amber-400">Daftar Pengurus Resmi Dusun Kiyudan:</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-gray-300">
-                  <p>1. Slamet Rifaudin</p>
-                  <p>2. Syarif Suharsono</p>
-                  <p>3. Humam Syarif</p>
-                  <p>4. Afif Dwi Cahyo</p>
-                  <p>5. Alvin Pratama</p>
-                  <p>6. Pawit</p>
-                  <p>7. Khoiruddin</p>
+                <p className="font-bold text-amber-400">Pilihan Login Pengurus & Petugas Kelompok:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-gray-300 text-[11px]">
+                  <p>• <b>Kelompok SATU</b> (username: <code>kelompok satu</code>)</p>
+                  <p>• <b>Kelompok DUA</b> (username: <code>kelompok dua</code>)</p>
+                  <p>• <b>Kelompok TIGA</b> (username: <code>kelompok tiga</code>)</p>
+                  <p>• <b>Kelompok EMPAT</b> (username: <code>kelompok empat</code>)</p>
+                  <p>• <b>Humam Syarif</b> (Ketua Pemuda)</p>
+                  <p>• <b>Syarif Suharsono</b> (Bendahara)</p>
                 </div>
-                <p className="text-[11px] text-emerald-400 font-semibold pt-1">Password Resmi: kiyudan123</p>
+                <p className="text-[11px] text-emerald-400 font-semibold pt-1">Password Resmi: <b>kiyudan123</b></p>
               </div>
 
               <button
