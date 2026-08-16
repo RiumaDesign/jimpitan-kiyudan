@@ -761,9 +761,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return activeSession;
     }
 
+    const KELOMPOK_ROSTER = [
+      'Kelompok SATU (Armi, Apep, Fadel, Khabib, Uzik, Ihsan)',
+      'Kelompok DUA (Iwan, Humam, Kusnadi, Feri, Pi\'i, Harno)',
+      'Kelompok TIGA (Zazed, Alfin, Udin, Syahrul, Syarif)',
+      'Kelompok EMPAT (Dwik, Khoir, Doko, Riski, Rudi, Andri)',
+    ];
+
     const maxNum = pengambilanList.reduce((max, p) => Math.max(max, p.nomorPengambilan), 0);
     const newSessionNum = maxNum + 1;
     const today = new Date().toISOString().split('T')[0];
+    const rotatingOfficer = KELOMPOK_ROSTER[(newSessionNum - 1) % 4];
 
     const newSession: PengambilanMingguan = {
       id: Date.now(),
@@ -778,7 +786,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       totalSetoran: 0,
       uangFisik: 0,
       selisih: 0,
-      petugasLapangan: currentUser ? `${currentUser.name} (Petugas Lapangan)` : 'Humam Syarif (Ketua Pemuda)',
+      petugasLapangan: rotatingOfficer,
     };
 
     setPengambilanList(prev => {
@@ -787,7 +795,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return [newSession, ...prev];
     });
 
-    addLog('PENGAMBILAN_BARU', 'Pengambilan Mingguan', `Membuka Sesi Pengambilan Mingguan #${newSessionNum}`);
+    addLog('PENGAMBILAN_BARU', 'Pengambilan Mingguan', `Membuka Jadwal Pengambilan: ${rotatingOfficer} (Tanggal: ${today})`);
     return newSession;
   };
 

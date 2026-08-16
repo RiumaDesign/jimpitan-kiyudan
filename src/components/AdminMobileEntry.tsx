@@ -190,12 +190,12 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
             <div>
               <div className="flex items-center space-x-2">
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 uppercase">
-                  📱 ENTRY LAPANGAN SESI #{activeSession.nomorPengambilan}
+                  📱 ENTRY TUGAS KELOMPOK LAPANGAN
                 </span>
-                <span className="text-xs text-gray-400">{tanggalSesi}</span>
+                <span className="text-xs text-gray-400">📅 {tanggalSesi}</span>
               </div>
               <h2 className="text-xl sm:text-2xl font-bold text-white font-heading mt-0.5">
-                Petugas Keliling: <span className="text-amber-300">{petugasSesi}</span>
+                Petugas: <span className="text-amber-300">{petugasSesi}</span>
               </h2>
             </div>
           </div>

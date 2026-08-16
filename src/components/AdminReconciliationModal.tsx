@@ -80,11 +80,11 @@ export const AdminReconciliationModal: React.FC<ReconcileModalProps> = ({ isOpen
           </div>
           <div>
             <h3 className="text-xl font-bold text-white font-heading">
-              Rekonsiliasi & Pengesahan Sesi #{targetSession.nomorPengambilan}
+              Rekonsiliasi & Pengesahan Hasil Tugas: {targetSession.petugasLapangan?.split('(')[0] || 'Kelompok'}
             </h3>
             <p className="text-xs text-gray-400 flex items-center space-x-1 mt-0.5">
               <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Tanggal Entry: <b>{targetSession.tanggalPengambilan}</b></span>
+              <span>Tanggal Tugas: <b>{targetSession.tanggalPengambilan}</b></span>
             </p>
           </div>
         </div>
@@ -93,7 +93,7 @@ export const AdminReconciliationModal: React.FC<ReconcileModalProps> = ({ isOpen
         <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs">
           <div className="flex items-center space-x-2 text-gray-300">
             <UserCheck className="w-4 h-4 text-emerald-400" />
-            <span>Petugas Lapangan Penanggung Jawab:</span>
+            <span>Kelompok Penanggung Jawab:</span>
           </div>
           <span className="font-extrabold text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
             {targetSession.petugasLapangan || 'Kelompok SATU'}
@@ -102,7 +102,7 @@ export const AdminReconciliationModal: React.FC<ReconcileModalProps> = ({ isOpen
 
         {/* System Summary Card */}
         <div className="glass-card p-4 rounded-2xl border border-gray-800 space-y-2 text-xs">
-          <p className="text-gray-400 font-bold uppercase">Ringkasan Sistem Pengambilan Sesi:</p>
+          <p className="text-gray-400 font-bold uppercase">Ringkasan Sistem Hasil Tugas Lapangan:</p>
           <div className="flex justify-between">
             <span className="text-gray-300">Total Warga Diambil</span>
             <span className="font-bold text-white">{totalWargaDiambil} / {targetSession.totalWarga} Warga</span>

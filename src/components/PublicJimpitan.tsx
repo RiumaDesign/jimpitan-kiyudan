@@ -124,7 +124,7 @@ export const PublicJimpitan: React.FC = () => {
         
         <div className="flex items-center space-x-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
           <Filter className="w-4 h-4 text-emerald-400" />
-          <span>PILIH SESI PENGAMBILAN (SESI 1, 2, 3, 4 ... & FILTER TANGGAL/BULAN/TAHUN)</span>
+          <span>PILIH JADWAL TUGAS KELOMPOK (TANGGAL & KELOMPOK BERTUGAS)</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -132,7 +132,7 @@ export const PublicJimpitan: React.FC = () => {
           {/* Main Session Selector Dropdown */}
           <div className="sm:col-span-2">
             <label className="block text-[11px] font-bold text-amber-300 mb-1">
-              Pilih Sesi Mingguan (Klik Untuk Ganti Sesi):
+              Pilih Jadwal Tugas Kelompok:
             </label>
             <select
               value={selectedSessionId}
@@ -141,7 +141,7 @@ export const PublicJimpitan: React.FC = () => {
             >
               {availableSessionsForDropdown.map(s => (
                 <option key={s.id} value={s.id}>
-                  Sesi #{s.nomorPengambilan} — {s.tanggalPengambilan} ({s.status === 'disahkan' ? '🟢 DISAHKAN' : '🟡 BERJALAN'}) — PJ: {s.petugasLapangan || 'Kelompok SATU'}
+                  📅 {s.tanggalPengambilan} — {s.petugasLapangan || 'Kelompok SATU'} ({s.status === 'disahkan' ? '🟢 Disahkan' : '🟡 Berjalan'})
                 </option>
               ))}
             </select>
@@ -233,15 +233,15 @@ export const PublicJimpitan: React.FC = () => {
             <div>
               <div className="flex items-center space-x-2">
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  INFORMASI SESI TERPILIH
+                  INFORMASI JADWAL TUGAS
                 </span>
-                <span className="text-xs text-gray-400">Pengambilan #{activeSession.nomorPengambilan}</span>
+                <span className="text-xs text-gray-400">{activeSession.tanggalPengambilan}</span>
               </div>
               <h3 className="text-xl font-bold text-white font-heading mt-1">
-                Sabtu Malam ({activeSession.tanggalPengambilan})
+                {activeSession.petugasLapangan || 'Kelompok SATU'}
               </h3>
               <p className="text-xs text-emerald-400 font-semibold mt-0.5">
-                Petugas Lapangan: {activeSession.petugasLapangan || 'Kelompok SATU'}
+                Tanggal Pengambilan: {activeSession.tanggalPengambilan}
               </p>
             </div>
 
@@ -249,11 +249,11 @@ export const PublicJimpitan: React.FC = () => {
               {activeSession.status === 'disahkan' ? (
                 <span className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shadow-lg">
                   <CheckCircle className="w-4 h-4" />
-                  <span>SESI TELAH DISAHKAN RESMI</span>
+                  <span>TELAH DISAHKAN RESMI</span>
                 </span>
               ) : (
                 <span className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-lg">
-                  <span>SESI BERJALAN</span>
+                  <span>SEDANG BERJALAN</span>
                 </span>
               )}
             </div>
@@ -297,7 +297,7 @@ export const PublicJimpitan: React.FC = () => {
       <div className="glass-panel rounded-3xl border border-gray-800 overflow-hidden shadow-2xl space-y-0">
         <div className="p-4 bg-gray-950 border-b border-gray-800 flex items-center justify-between text-xs">
           <span className="font-bold text-white uppercase tracking-wider">
-            📋 TABEL SETORAN 40 KK (SESI #{activeSession?.nomorPengambilan || 1})
+            📋 TABEL RINCIAN 40 KK — {activeSession?.petugasLapangan || 'Kelompok Bertugas'} ({activeSession?.tanggalPengambilan})
           </span>
           <span className="text-gray-400">
             Menampilkan <b className="text-emerald-400 font-bold">{filteredWarga.length} Warga</b>
@@ -388,7 +388,7 @@ export const PublicJimpitan: React.FC = () => {
               <tfoot className="bg-gray-950 font-bold border-t-2 border-gray-800 text-white">
                 <tr>
                   <td colSpan={3} className="p-4 uppercase text-emerald-400 text-xs">
-                    TOTAL SETORAN SESI #{activeSession.nomorPengambilan}:
+                    TOTAL SETORAN: {activeSession.petugasLapangan?.split('(')[0] || 'KELOMPOK'} ({activeSession.tanggalPengambilan}):
                   </td>
                   <td className="p-4 text-right text-amber-400 font-bold">
                     Rp {sessionTotalJimpitan.toLocaleString('id-ID')}
