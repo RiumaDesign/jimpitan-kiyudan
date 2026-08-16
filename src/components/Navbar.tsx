@@ -40,7 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
     { id: 'rekap-warga', label: 'Rekap Setoran Warga', icon: FileSpreadsheet },
     { id: 'tabungan', label: 'Cek Tabungan', icon: Wallet, isSpecial: true },
     { id: 'keuangan', label: 'Kas & Transparansi', icon: Landmark },
-    { id: 'laporan', label: 'Laporan & Grafik', icon: FileText },
+    { id: 'laporan', label: 'Laporan Keuangan', icon: FileText },
   ];
 
   const adminLinks = [
