@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Wallet, Search, ShieldCheck, ArrowDownRight, ArrowUpRight, X, AlertCircle } from 'lucide-react';
+import { Wallet, Search, ShieldCheck, ArrowDownRight, ArrowUpRight, X, AlertCircle, Printer, RefreshCw } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useApp } from '../context/AppContext';
 import type { Warga, TransaksiTabungan } from '../types';
 
@@ -9,9 +11,11 @@ interface SavingsModalProps {
 }
 
 export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClose }) => {
-  const { lookupTabunganPublik } = useApp();
+  const { lookupTabunganPublik, currentPeriode, transaksiPengambilanList, pengambilanList } = useApp();
   const [nama, setNama] = useState('Anwari');
   const [kodeWarga, setKodeWarga] = useState('KDY-001');
+  const [filterBulan, setFilterBulan] = useState<number | 'semua'>('semua');
+  const [isExporting, setIsExporting] = useState(false);
 
   const [searchResult, setSearchResult] = useState<{
     searched: boolean;
@@ -23,6 +27,21 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
 
   if (!isOpen) return null;
 
+  const bulans = [
+    { value: 1, label: 'Januari' },
+    { value: 2, label: 'Februari' },
+    { value: 3, label: 'Maret' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'Mei' },
+    { value: 6, label: 'Juni' },
+    { value: 7, label: 'Juli' },
+    { value: 8, label: 'Agustus' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'Oktober' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'Desember' },
+  ];
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const res = lookupTabunganPublik(nama, kodeWarga);
@@ -33,6 +52,187 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
       saldoTotal: res.saldoTotal,
       history: res.history,
     });
+  };
+
+  // Personal PDF Generator
+  const handleExportPersonalPDF = () => {
+    if (!searchResult.warga) return;
+
+    setIsExporting(true);
+    setTimeout(() => {
+      try {
+        const doc = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4',
+        });
+
+        const warga = searchResult.warga!;
+        const nowStr = new Date().toLocaleDateString('id-ID', {
+          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+        });
+
+        // Filter transactions for this citizen
+        const citizenSessionsTx = transaksiPengambilanList.filter(
+          t => t.wargaId === warga.id && t.status === 'sudah_diambil'
+        ).map(t => {
+          const sessionObj = pengambilanList.find(s => s.id === t.pengambilanId);
+          return {
+            ...t,
+            sessionObj,
+          };
+        }).filter(item => {
+          if (!item.sessionObj) return false;
+          if (filterBulan !== 'semua') {
+            const m = new Date(item.sessionObj.tanggalPengambilan).getMonth() + 1;
+            return m === Number(filterBulan);
+          }
+          return true;
+        }).sort((a, b) => (a.sessionObj?.nomorPengambilan || 0) - (b.sessionObj?.nomorPengambilan || 0));
+
+        const sumJimpitan = citizenSessionsTx.reduce((acc, t) => acc + t.jimpitan, 0);
+        const sumTabungan = citizenSessionsTx.reduce((acc, t) => acc + t.tabungan, 0);
+        const grandTotal = sumJimpitan + sumTabungan;
+
+        let scopeText = `Akumulasi 1 Tahun (Periode Pembukuan ${currentPeriode.tahun})`;
+        if (filterBulan !== 'semua') {
+          const bulanName = bulans.find(b => b.value === Number(filterBulan))?.label;
+          scopeText = `Laporan Bulanan (${bulanName} ${currentPeriode.tahun})`;
+        }
+
+        // Kop Surat Header
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.setTextColor(16, 185, 129); // Emerald
+        doc.text('PEMUDA DUSUN KIYUDAN', 14, 15);
+
+        doc.setFontSize(9);
+        doc.setFont('Helvetica', 'normal');
+        doc.setTextColor(100, 116, 139);
+        doc.text('RT 01 / RW 04, Desa Majaksingi, Kecamatan Borobudur, Kabupaten Magelang', 14, 20);
+        doc.text('Sistem Keuangan, Jimpitan & Tabungan Mandiri Warga', 14, 24);
+
+        doc.setLineWidth(0.5);
+        doc.setDrawColor(203, 213, 225);
+        doc.line(14, 27, 196, 27);
+
+        // Judul Dokumen
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.setTextColor(15, 23, 42);
+        doc.text('KARTU & LAPORAN SETORAN INDIVIDU WARGA', 14, 34);
+
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(9.5);
+        doc.setTextColor(71, 85, 105);
+        doc.text(`Kriteria Laporan: ${scopeText} | Tanggal Cetak: ${nowStr}`, 14, 39);
+
+        // Detail Box Warga
+        doc.setFillColor(241, 245, 249);
+        doc.roundedRect(14, 44, 182, 28, 3, 3, 'F');
+
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`Kode Warga : ${warga.kodeWarga}`, 18, 51);
+        doc.text(`Nama Warga : ${warga.nama}`, 18, 57);
+        doc.text(`Alamat / No : ${warga.alamat} (${warga.noRumah})`, 18, 63);
+
+        doc.text(`Total Pertemuan  : ${citizenSessionsTx.length} Sesi`, 110, 51);
+        doc.text(`Total Jimpitan   : Rp ${sumJimpitan.toLocaleString('id-ID')}`, 110, 57);
+        doc.setTextColor(16, 185, 129);
+        doc.text(`GRAND TOTAL SALDO: Rp ${grandTotal.toLocaleString('id-ID')}`, 110, 63);
+
+        // Table Body
+        const tableBody = citizenSessionsTx.map((item, idx) => [
+          idx + 1,
+          `Sesi #${item.sessionObj?.nomorPengambilan}`,
+          item.sessionObj?.tanggalPengambilan || '-',
+          `Rp ${item.jimpitan.toLocaleString('id-ID')}`,
+          `Rp ${item.tabungan.toLocaleString('id-ID')}`,
+          item.sessionObj?.petugasLapangan || 'Danang Prasetyo',
+          `Rp ${item.total.toLocaleString('id-ID')}`,
+        ]);
+
+        // Footer row
+        tableBody.push([
+          '',
+          '',
+          'TOTAL AKUMULASI SETORAN',
+          `Rp ${sumJimpitan.toLocaleString('id-ID')}`,
+          `Rp ${sumTabungan.toLocaleString('id-ID')}`,
+          '',
+          `Rp ${grandTotal.toLocaleString('id-ID')}`,
+        ]);
+
+        autoTable(doc, {
+          startY: 76,
+          head: [['No', 'Sesi Minggu', 'Tanggal', 'Jimpitan (3k)', 'Tabungan', 'Petugas Lapangan', 'Total Setoran']],
+          body: tableBody,
+          theme: 'striped',
+          headStyles: {
+            fillColor: [16, 185, 129],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 9,
+          },
+          bodyStyles: {
+            fontSize: 8.5,
+            textColor: [30, 41, 59],
+          },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 24, fontStyle: 'bold' },
+            2: { cellWidth: 26 },
+            3: { cellWidth: 28, halign: 'right' },
+            4: { cellWidth: 30, halign: 'right' },
+            5: { cellWidth: 34 },
+            6: { cellWidth: 30, halign: 'right', fontStyle: 'bold' },
+          },
+          didParseCell: (data) => {
+            if (data.row.index === tableBody.length - 1) {
+              data.cell.styles.fontStyle = 'bold';
+              data.cell.styles.fillColor = [226, 232, 240];
+              data.cell.styles.textColor = [15, 23, 42];
+            }
+          },
+        });
+
+        // Signatures Block
+        const finalY = (doc as any).lastAutoTable.finalY + 15;
+
+        if (finalY < 250) {
+          doc.setFontSize(9);
+          doc.setTextColor(15, 23, 42);
+
+          const col1 = 25;
+          const col2 = 85;
+          const col3 = 145;
+
+          doc.text('Warga Pemilik Tabungan,', col1, finalY);
+          doc.text('Petugas Lapangan,', col2, finalY);
+          doc.text('Bendahara Dusun,', col3, finalY);
+
+          doc.setFont('Helvetica', 'bold');
+          doc.text(warga.nama, col1, finalY + 18);
+          doc.text('Danang Prasetyo', col2, finalY + 18);
+          doc.text('Budi Santoso', col3, finalY + 18);
+
+          doc.setFont('Helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(100, 116, 139);
+          doc.text(`Kode: ${warga.kodeWarga}`, col1, finalY + 22);
+          doc.text('Tim Keliling Lapangan', col2, finalY + 22);
+          doc.text('Pengelola Keuangan', col3, finalY + 22);
+        }
+
+        doc.save(`Laporan_Personal_${warga.kodeWarga}_${warga.nama.replace(/\s+/g, '_')}.pdf`);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsExporting(false);
+      }
+    }, 300);
   };
 
   return (
@@ -57,7 +257,7 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
               Cek Tabungan Mandiri Warga
             </h2>
             <p className="text-xs sm:text-sm text-gray-400">
-              Masukkan Nama Warga dan Kode Warga untuk membuka saldo pribadi
+              Masukkan Nama Warga dan Kode Warga untuk membuka saldo pribadi & cetak kartu laporan
             </p>
           </div>
         </div>
@@ -125,7 +325,7 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
               <div className="space-y-5 animate-fadeIn">
                 
                 {/* Result Hero Card */}
-                <div className="glass-card p-6 rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-gray-900/80 to-emerald-500/10 shadow-xl relative overflow-hidden">
+                <div className="glass-card p-6 rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-gray-900/80 to-emerald-500/10 shadow-xl relative overflow-hidden space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
                     <div>
                       <div className="flex items-center space-x-2">
@@ -146,6 +346,43 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
                         Rp {searchResult.saldoTotal?.toLocaleString('id-ID')}
                       </p>
                     </div>
+                  </div>
+
+                  {/* Cetak PDF Personal Control Bar */}
+                  <div className="pt-3 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center space-x-2 w-full sm:w-auto">
+                      <span className="text-xs text-gray-300 font-medium">Filter Cetak:</span>
+                      <select
+                        value={filterBulan}
+                        onChange={(e) => setFilterBulan(e.target.value === 'semua' ? 'semua' : Number(e.target.value))}
+                        className="glass-input px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-300"
+                      >
+                        <option value="semua" className="bg-gray-900 text-white">Akumulasi 1 Tahun ({currentPeriode.tahun})</option>
+                        {bulans.map(b => (
+                          <option key={b.value} value={b.value} className="bg-gray-900 text-white">
+                            Bulan {b.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <button
+                      onClick={handleExportPersonalPDF}
+                      disabled={isExporting}
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                    >
+                      {isExporting ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Mencetak PDF...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Printer className="w-4 h-4" />
+                          <span>🖨️ Cetak Kartu Laporan Individu (PDF)</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
 
