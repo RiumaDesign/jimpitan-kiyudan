@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   UserCheck, Landmark, Coins, Wallet, ShieldCheck, 
-  PlusCircle, ArrowRight, LayoutDashboard
+  PlusCircle, ArrowRight, LayoutDashboard, Database, Download, Upload, CheckCircle2
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -13,14 +13,36 @@ interface AdminDashboardProps {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab, openReconcileModal }) => {
   const { 
     currentUser, currentPeriode, getSaldoKasPemuda, 
-    getSaldoKasDusun, getTotalTabunganDusun, pengambilanList, auditLogs 
+    getSaldoKasDusun, getTotalTabunganDusun, pengambilanList, auditLogs,
+    exportDatabaseBackup, importDatabaseBackup
   } = useApp();
+
+  const [importStatus, setImportStatus] = useState<string | null>(null);
 
   const saldoPemuda = getSaldoKasPemuda();
   const saldoDusun = getSaldoKasDusun();
   const totalTabungan = getTotalTabunganDusun();
 
   const activeSession = pengambilanList.find(p => p.status === 'berjalan') || pengambilanList[pengambilanList.length - 1];
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      const ok = importDatabaseBackup(content);
+      if (ok) {
+        setImportStatus('Database berhasil dipulihkan & disimpan permanen!');
+        setTimeout(() => setImportStatus(null), 3500);
+      } else {
+        setImportStatus('Gagal memulihkan database. Pastikan format file JSON valid.');
+        setTimeout(() => setImportStatus(null), 3500);
+      }
+    };
+    reader.readAsText(file);
+  };
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn pb-16">
@@ -30,7 +52,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab, op
         <div className="space-y-2">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Dashboard Administrator & Bendahara Dusun</span>
+            <span>Dashboard Administrator & Pengurus Dusun</span>
           </div>
 
           <h2 className="text-2xl sm:text-4xl font-black text-white font-heading tracking-tight">
@@ -109,6 +131,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab, op
           <p className="text-[11px] text-amber-400 font-semibold capitalize mt-1">Status: {activeSession?.status.replace('_', ' ')}</p>
         </div>
 
+      </div>
+
+      {/* Realtime Database & Backup Storage Control Card */}
+      <div className="glass-panel p-6 rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/40 via-gray-900 to-blue-950/40 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <Database className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white font-heading">
+                💾 Penyimpanan Permanent & Backup Database Realtime
+              </h3>
+              <p className="text-xs text-gray-300">
+                Seluruh data yang Anda input otomatis tersimpan permanen di LocalStorage browser. Anda juga bisa backup/restore database file JSON kapan saja.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 shrink-0">
+            <button
+              onClick={exportDatabaseBackup}
+              className="px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 transition-all flex items-center space-x-1.5"
+            >
+              <Download className="w-4 h-4" />
+              <span>Ekspor Backup JSON</span>
+            </button>
+
+            <label className="px-4 py-2.5 rounded-xl font-bold text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 transition-all flex items-center space-x-1.5 cursor-pointer">
+              <Upload className="w-4 h-4 text-amber-400" />
+              <span>Impor Backup JSON</span>
+              <input type="file" accept=".json" onChange={handleFileImport} className="hidden" />
+            </label>
+          </div>
+        </div>
+
+        {importStatus && (
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{importStatus}</span>
+          </div>
+        )}
       </div>
 
       {/* Admin Quick Action Cards */}

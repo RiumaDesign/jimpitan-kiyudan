@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import type {
   User, Warga, PeriodePembukuan, PesertaPembukuan, PengambilanMingguan,
@@ -98,6 +98,8 @@ interface AppContextType {
   };
 
   createPengambilanMingguanBaru: () => PengambilanMingguan;
+  exportDatabaseBackup: () => void;
+  importDatabaseBackup: (jsonStr: string) => boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -108,15 +110,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [periodeList, setPeriodeList] = useState<PeriodePembukuan[]>(INITIAL_PERIODE);
+  // LocalStorage-backed state initializers for persistent storage
+  const [periodeList, setPeriodeList] = useState<PeriodePembukuan[]>(() => {
+    const saved = localStorage.getItem('kiyu_periode');
+    return saved ? JSON.parse(saved) : INITIAL_PERIODE;
+  });
+
   const currentPeriode = periodeList.find(p => p.status === 'aktif') || periodeList[periodeList.length - 1];
 
-  const [wargaList, setWargaList] = useState<Warga[]>(INITIAL_WARGA);
-  const [pesertaList, setPesertaList] = useState<PesertaPembukuan[]>(INITIAL_PESERTA);
+  const [wargaList, setWargaList] = useState<Warga[]>(() => {
+    const saved = localStorage.getItem('kiyu_warga');
+    return saved ? JSON.parse(saved) : INITIAL_WARGA;
+  });
 
-  const [pengambilanList, setPengambilanList] = useState<PengambilanMingguan[]>(INITIAL_PENGAMBILAN);
+  const [pesertaList, setPesertaList] = useState<PesertaPembukuan[]>(() => {
+    const saved = localStorage.getItem('kiyu_peserta');
+    return saved ? JSON.parse(saved) : INITIAL_PESERTA;
+  });
+
+  const [pengambilanList, setPengambilanList] = useState<PengambilanMingguan[]>(() => {
+    const saved = localStorage.getItem('kiyu_pengambilan');
+    return saved ? JSON.parse(saved) : INITIAL_PENGAMBILAN;
+  });
 
   const [transaksiPengambilanList, setTransaksiPengambilanList] = useState<TransaksiPengambilan[]>(() => {
+    const saved = localStorage.getItem('kiyu_tx_pengambilan');
+    if (saved) return JSON.parse(saved);
+
     const items: TransaksiPengambilan[] = [];
     let idCounter = 1;
     INITIAL_WARGA.forEach((w, idx) => {
@@ -135,10 +155,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return items;
   });
 
-  const [transaksiKasList, setTransaksiKasList] = useState<TransaksiKas[]>(INITIAL_TRANSAKSI_KAS);
-  const [transaksiTabunganList, setTransaksiTabunganList] = useState<TransaksiTabungan[]>(INITIAL_TABUNGAN_TRANSAKSI);
+  const [transaksiKasList, setTransaksiKasList] = useState<TransaksiKas[]>(() => {
+    const saved = localStorage.getItem('kiyu_tx_kas');
+    return saved ? JSON.parse(saved) : INITIAL_TRANSAKSI_KAS;
+  });
+
+  const [transaksiTabunganList, setTransaksiTabunganList] = useState<TransaksiTabungan[]>(() => {
+    const saved = localStorage.getItem('kiyu_tx_tabungan');
+    return saved ? JSON.parse(saved) : INITIAL_TABUNGAN_TRANSAKSI;
+  });
+
   const [pengumumanList] = useState<Pengumuman[]>(INITIAL_PENGUMUMAN);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
+  
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
+    const saved = localStorage.getItem('kiyu_audit');
+    return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
+  });
+
+  // Automatically persist all state modifications to LocalStorage
+  useEffect(() => { localStorage.setItem('kiyu_periode', JSON.stringify(periodeList)); }, [periodeList]);
+  useEffect(() => { localStorage.setItem('kiyu_warga', JSON.stringify(wargaList)); }, [wargaList]);
+  useEffect(() => { localStorage.setItem('kiyu_peserta', JSON.stringify(pesertaList)); }, [pesertaList]);
+  useEffect(() => { localStorage.setItem('kiyu_pengambilan', JSON.stringify(pengambilanList)); }, [pengambilanList]);
+  useEffect(() => { localStorage.setItem('kiyu_tx_pengambilan', JSON.stringify(transaksiPengambilanList)); }, [transaksiPengambilanList]);
+  useEffect(() => { localStorage.setItem('kiyu_tx_kas', JSON.stringify(transaksiKasList)); }, [transaksiKasList]);
+  useEffect(() => { localStorage.setItem('kiyu_tx_tabungan', JSON.stringify(transaksiTabunganList)); }, [transaksiTabunganList]);
+  useEffect(() => { localStorage.setItem('kiyu_audit', JSON.stringify(auditLogs)); }, [auditLogs]);
+
+  // Real-time synchronization across browser tabs/windows
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'kiyu_warga' && e.newValue) setWargaList(JSON.parse(e.newValue));
+      if (e.key === 'kiyu_pengambilan' && e.newValue) setPengambilanList(JSON.parse(e.newValue));
+      if (e.key === 'kiyu_tx_pengambilan' && e.newValue) setTransaksiPengambilanList(JSON.parse(e.newValue));
+      if (e.key === 'kiyu_tx_kas' && e.newValue) setTransaksiKasList(JSON.parse(e.newValue));
+      if (e.key === 'kiyu_tx_tabungan' && e.newValue) setTransaksiTabunganList(JSON.parse(e.newValue));
+      if (e.key === 'kiyu_periode' && e.newValue) setPeriodeList(JSON.parse(e.newValue));
+      if (e.key === 'kiyu_audit' && e.newValue) setAuditLogs(JSON.parse(e.newValue));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const addLog = (aksi: string, modul: string, detail: string) => {
     const newLog: AuditLog = {
@@ -662,13 +720,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       totalSetoran: 0,
       uangFisik: 0,
       selisih: 0,
-      petugasLapangan: currentUser ? `${currentUser.name} (${currentUser.role})` : 'Danang Prasetyo (Petugas Lapangan)',
+      petugasLapangan: currentUser ? `${currentUser.name} (Petugas Lapangan)` : 'Humam Syarif (Ketua Pemuda)',
     };
 
     setPengambilanList(prev => [newSession, ...prev]);
 
     addLog('PENGAMBILAN_BARU', 'Pengambilan Mingguan', `Membuka Sesi Pengambilan Mingguan #${newSessionNum}`);
     return newSession;
+  };
+
+  const exportDatabaseBackup = () => {
+    const data = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      wargaList,
+      pesertaList,
+      periodeList,
+      pengambilanList,
+      transaksiPengambilanList,
+      transaksiKasList,
+      transaksiTabunganList,
+      auditLogs,
+    };
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Backup_Database_Kiyudan_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addLog('BACKUP_DATABASE', 'Sistem Database', 'Mengekspor file cadangan database JSON.');
+  };
+
+  const importDatabaseBackup = (jsonStr: string): boolean => {
+    try {
+      const data = JSON.parse(jsonStr);
+      if (data.wargaList) setWargaList(data.wargaList);
+      if (data.pesertaList) setPesertaList(data.pesertaList);
+      if (data.periodeList) setPeriodeList(data.periodeList);
+      if (data.pengambilanList) setPengambilanList(data.pengambilanList);
+      if (data.transaksiPengambilanList) setTransaksiPengambilanList(data.transaksiPengambilanList);
+      if (data.transaksiKasList) setTransaksiKasList(data.transaksiKasList);
+      if (data.transaksiTabunganList) setTransaksiTabunganList(data.transaksiTabunganList);
+      if (data.auditLogs) setAuditLogs(data.auditLogs);
+      addLog('RESTORE_DATABASE', 'Sistem Database', 'Memulihkan database dari file backup JSON.');
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   };
 
   return (
@@ -703,6 +804,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createNewPeriodWizard,
         lookupTabunganPublik,
         createPengambilanMingguanBaru,
+        exportDatabaseBackup,
+        importDatabaseBackup,
       }}
     >
       {children}
