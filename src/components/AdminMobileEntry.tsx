@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   UserCheck, Search, Check, Clock, ArrowLeft, 
-  Save, AlertTriangle, X, ChevronDown, ChevronUp, Zap, Coins 
+  Save, AlertTriangle, X, ChevronDown, ChevronUp, Zap, Coins, Edit3, Sparkles 
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -36,8 +36,8 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
   const [filterStatus, setFilterStatus] = useState<'semua' | 'sudah' | 'belum'>('semua');
   const [showSuggestions, setShowSuggestions] = useState(false);
   
-  // Selected Warga for editing
-  const [selectedWargaId, setSelectedWargaId] = useState<number | null>(null);
+  // Selected Warga for editing (Defaults to first warga so form is available)
+  const [selectedWargaId, setSelectedWargaId] = useState<number | null>(1);
   const [jimpitanInputStr, setJimpitanInputStr] = useState<string>('3000');
   const [tabunganInputStr, setTabunganInputStr] = useState<string>('10000');
   const [statusInput, setStatusInput] = useState<'sudah_diambil' | 'tidak_ada' | 'ditunda' | 'tidak_ikut'>('sudah_diambil');
@@ -55,7 +55,17 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
     };
   }).filter(item => item.warga !== undefined);
 
-  // Suggestions for autocomplete matching
+  // Real-time recalculations for current active session
+  const sessionTxList = transaksiPengambilanList.filter(t => t.pengambilanId === activeSession.id && t.status === 'sudah_diambil');
+  const liveCountSudah = sessionTxList.length;
+  const liveTotalJimpitan = sessionTxList.reduce((sum, t) => sum + (t.jimpitan || 0), 0);
+  const liveTotalTabungan = sessionTxList.reduce((sum, t) => sum + (t.tabungan || 0), 0);
+  const liveTotalSetoran = liveTotalJimpitan + liveTotalTabungan;
+
+  const totalWargaCount = activeWargaItems.length;
+  const progressPercent = Math.round((liveCountSudah / (totalWargaCount || 1)) * 100);
+
+  // Suggestions for autocomplete matching on typing
   const suggestedWarga = activeWargaItems.filter(item => {
     if (!searchTerm.trim()) return false;
     const term = searchTerm.toLowerCase();
@@ -74,10 +84,6 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
     if (filterStatus === 'belum') return matchSearch && !isTaken;
     return matchSearch;
   });
-
-  const countSudah = activeWargaItems.filter(item => item.tx?.status === 'sudah_diambil').length;
-  const totalWargaCount = activeWargaItems.length;
-  const progressPercent = Math.round((countSudah / (totalWargaCount || 1)) * 100);
 
   const handleSaveMetadata = () => {
     updatePengambilanSessionMetadata(activeSession.id, tanggalSesi, petugasSesi);
@@ -146,12 +152,15 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
 
     setShowConfirmModal(false);
 
-    // Auto move to next unvisited warga
-    const nextItem = activeWargaItems.find(item => item.warga.id > selectedWargaId && item.tx?.status !== 'sudah_diambil');
-    if (nextItem) {
-      handleSelectWarga(nextItem.warga.id);
+    // Smoothly load next unvisited resident without closing the form
+    const nextUnvisited = activeWargaItems.find(item => item.warga.id > selectedWargaId && item.tx?.status !== 'sudah_diambil')
+      || activeWargaItems.find(item => item.warga.id !== selectedWargaId && item.tx?.status !== 'sudah_diambil');
+
+    if (nextUnvisited) {
+      handleSelectWarga(nextUnvisited.warga.id);
     } else {
-      setSelectedWargaId(null);
+      // Keep form open on current resident if all 40 KK are filled
+      handleSelectWarga(selectedWargaId);
     }
   };
 
@@ -191,7 +200,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
           </button>
         </div>
 
-        {/* Collapsible Metadata Form (Hidden by default to avoid clutter!) */}
+        {/* Collapsible Metadata Form */}
         {showMetadataPanel && (
           <div className="p-4 rounded-2xl bg-gray-900/90 border border-emerald-500/30 space-y-3 animate-fadeIn">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -265,20 +274,28 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
           </div>
         )}
 
-        {/* Progress Bar & Real-time Total Header */}
-        <div className="flex items-center justify-between bg-gray-900/80 p-3 rounded-2xl border border-gray-800 text-xs">
-          <div>
-            <span className="text-gray-400 font-medium">Progress Sesi: </span>
-            <b className="text-emerald-400 font-bold">{countSudah} / {totalWargaCount} KK ({progressPercent}%)</b>
+        {/* Real-time Session Calculations Card */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
+          <div className="bg-gray-900/90 p-2.5 rounded-2xl border border-gray-800">
+            <span className="text-[10px] text-gray-400 uppercase font-semibold block">Prosentase Sesi</span>
+            <span className="font-bold text-emerald-400 text-sm">{liveCountSudah} / {totalWargaCount} KK ({progressPercent}%)</span>
           </div>
-          <div>
-            <span className="text-gray-400 font-medium">Total Fisik: </span>
-            <b className="text-amber-400 font-bold text-sm">Rp {activeSession.totalSetoran.toLocaleString('id-ID')}</b>
+          <div className="bg-gray-900/90 p-2.5 rounded-2xl border border-gray-800">
+            <span className="text-[10px] text-gray-400 uppercase font-semibold block">Jimpitan Terkumpul</span>
+            <span className="font-bold text-amber-400 text-sm">Rp {liveTotalJimpitan.toLocaleString('id-ID')}</span>
+          </div>
+          <div className="bg-gray-900/90 p-2.5 rounded-2xl border border-gray-800">
+            <span className="text-[10px] text-gray-400 uppercase font-semibold block">Tabungan Terkumpul</span>
+            <span className="font-bold text-blue-400 text-sm">Rp {liveTotalTabungan.toLocaleString('id-ID')}</span>
+          </div>
+          <div className="bg-gray-900/90 p-2.5 rounded-2xl border border-emerald-500/30">
+            <span className="text-[10px] text-emerald-400 uppercase font-semibold block">Total Uang Fisik</span>
+            <span className="font-black text-emerald-400 text-base font-heading">Rp {liveTotalSetoran.toLocaleString('id-ID')}</span>
           </div>
         </div>
       </div>
 
-      {/* SEARCH BAR & AUTOCOMPLETE */}
+      {/* SEARCH BAR WITH INSTANT AUTOCOMPLETE DROP-DOWN */}
       <div className="glass-panel p-4 rounded-3xl border border-gray-800 space-y-3 shadow-xl">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 relative">
           
@@ -292,15 +309,18 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                 setSearchTerm(e.target.value);
                 setShowSuggestions(true);
               }}
-              placeholder="🔍 Ketik nama warga (misal: Slamet / KDY-001)..."
+              placeholder="🔍 Ketik nama warga (otomatis muncul saran nama)..."
               className="w-full glass-input pl-9 pr-3 py-2 rounded-xl text-xs font-medium text-white focus:ring-2 focus:ring-emerald-500"
             />
 
-            {/* Floating Suggestions Dropdown */}
+            {/* Instant Suggestions Floating Dropdown */}
             {showSuggestions && suggestedWarga.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 z-40 bg-gray-900 border border-emerald-500/40 rounded-2xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto animate-fadeIn">
                 <div className="px-3 py-1.5 bg-gray-950 border-b border-gray-800 text-[10px] font-bold text-emerald-400 uppercase flex items-center justify-between">
-                  <span>Saran Warga Terdaftar</span>
+                  <span className="flex items-center space-x-1">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <span>Saran Nama Sesuai Huruf Diketik</span>
+                  </span>
                   <span>{suggestedWarga.length} Hasil</span>
                 </div>
 
@@ -330,7 +350,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                         </span>
                       ) : (
                         <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
-                          🟡 Pilih
+                          ✏️ Klik Untuk Edit
                         </span>
                       )}
                     </div>
@@ -355,7 +375,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                 filterStatus === 'sudah' ? 'bg-emerald-600 text-white' : 'bg-gray-900 text-gray-400'
               }`}
             >
-              🟢 Sudah ({countSudah})
+              🟢 Sudah ({liveCountSudah})
             </button>
             <button
               onClick={() => setFilterStatus('belum')}
@@ -363,14 +383,14 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                 filterStatus === 'belum' ? 'bg-amber-600 text-white' : 'bg-gray-900 text-gray-400'
               }`}
             >
-              🟡 Belum ({totalWargaCount - countSudah})
+              🟡 Belum ({totalWargaCount - liveCountSudah})
             </button>
           </div>
 
         </div>
       </div>
 
-      {/* SELECTED WARGA EXPANDED ENTRY FORM */}
+      {/* ALWAYS OPEN EDIT FORM PANEL FOR SELECTED WARGA */}
       {selectedWargaId && (
         <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-emerald-500/40 bg-gradient-to-br from-emerald-950/40 via-gray-900 to-gray-950 shadow-2xl space-y-4 animate-fadeIn">
           {(() => {
@@ -381,23 +401,18 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
               <form onSubmit={handleOpenConfirmPopup} className="space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-gray-800">
                   <div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      {currentWarga.kodeWarga}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        {currentWarga.kodeWarga}
+                      </span>
+                      <span className="text-xs text-emerald-400 font-semibold">FORM INPUT / EDIT SETORAN WARGA</span>
+                    </div>
                     <h3 className="text-xl font-bold text-white font-heading mt-1">{currentWarga.nama}</h3>
                     <p className="text-xs text-gray-400">{currentWarga.alamat} • {currentWarga.noRumah}</p>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedWargaId(null)}
-                    className="text-xs text-gray-400 hover:text-white underline p-1"
-                  >
-                    Tutup
-                  </button>
                 </div>
 
-                {/* 1-TAP QUICK ACTION PRESETS (SANGAT MEMBANTU ORANG AWAM & PETUGAS) */}
+                {/* 1-TAP QUICK ACTION PRESETS */}
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-emerald-400 uppercase tracking-wider">
                     ⚡ TOMBOL CEPAT 1-KLIK (SETOR INSTAN):
@@ -575,7 +590,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
         </div>
       )}
 
-      {/* 40 WARGA CARDS GRID */}
+      {/* 40 WARGA CARDS GRID WITH EDIT BUTTON ON EACH CARD */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filteredItems.map(item => {
           const isTaken = item.tx?.status === 'sudah_diambil';
@@ -618,18 +633,31 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                 </div>
               </div>
 
+              {/* Action Bar & Edit Button */}
               <div className="mt-3 pt-2 border-t border-gray-800/80 flex items-center justify-between text-xs">
                 {isTaken ? (
-                  <>
-                    <span className="text-gray-400">Total: <b className="text-white">Rp {item.tx?.total.toLocaleString('id-ID')}</b></span>
-                    <span className="text-[10px] text-emerald-400 font-semibold">({item.tx?.jimpitan.toLocaleString('id-ID')} Jimpitan + {item.tx?.tabungan.toLocaleString('id-ID')} Tab)</span>
-                  </>
+                  <div>
+                    <span className="text-gray-400 block text-[10px]">Total: <b className="text-white">Rp {item.tx?.total.toLocaleString('id-ID')}</b></span>
+                    <span className="text-[10px] text-emerald-400 font-semibold">({item.tx?.jimpitan.toLocaleString('id-ID')} J + {item.tx?.tabungan.toLocaleString('id-ID')} T)</span>
+                  </div>
                 ) : (
-                  <>
-                    <span className="text-amber-400 font-semibold text-[11px]">Belum Diambil</span>
-                    <span className="text-[10px] text-gray-500">Tap untuk input ➔</span>
-                  </>
+                  <div>
+                    <span className="text-amber-400 font-semibold text-[11px] block">Belum Diambil</span>
+                    <span className="text-[10px] text-gray-500">Tap untuk input</span>
+                  </div>
                 )}
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectWarga(item.warga.id);
+                  }}
+                  className="px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 transition-all flex items-center space-x-1"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>{isTaken ? '✏️ Edit' : '➕ Input'}</span>
+                </button>
               </div>
             </div>
           );
@@ -642,8 +670,9 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
           <div>
             <p className="text-[10px] uppercase font-bold text-gray-400">Total Sesi Fisik ({tanggalSesi})</p>
             <p className="text-lg font-black text-amber-400 font-heading">
-              Rp {activeSession.totalSetoran.toLocaleString('id-ID')}
+              Rp {liveTotalSetoran.toLocaleString('id-ID')}
             </p>
+            <p className="text-[10px] text-gray-400">PJ: <span className="text-emerald-300 font-semibold">{petugasSesi}</span></p>
           </div>
 
           <button
