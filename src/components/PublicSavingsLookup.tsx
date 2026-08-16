@@ -34,8 +34,6 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
     saldoTotal?: number;
   }>({ searched: false, found: false });
 
-  if (!isOpen) return null;
-
   const bulans = [
     { value: 1, label: 'Januari' },
     { value: 2, label: 'Februari' },
@@ -282,6 +280,14 @@ export const PublicSavingsLookup: React.FC<SavingsModalProps> = ({ isOpen, onClo
       }
     }, 400);
   };
+
+  React.useEffect(() => {
+    if (isOpen && !searchResult.searched) {
+      executeLookup('Anwari', 'KDY-001');
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">

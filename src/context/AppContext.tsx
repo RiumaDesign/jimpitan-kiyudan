@@ -763,17 +763,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const lookupTabunganPublik = (nama: string, kodeWarga: string) => {
-    const target = wargaList.find(
-      w => w.nama.trim().toLowerCase() === nama.trim().toLowerCase() && 
-           w.kodeWarga.trim().toUpperCase() === kodeWarga.trim().toUpperCase()
-    );
+    const cleanNama = (nama || '').trim().toLowerCase();
+    const cleanKode = (kodeWarga || '').trim().toUpperCase();
+
+    const target = (wargaList || []).find(w => {
+      if (cleanKode && w.kodeWarga.trim().toUpperCase() === cleanKode) return true;
+      if (cleanNama && w.nama.trim().toLowerCase() === cleanNama) return true;
+      if (cleanNama && w.nama.trim().toLowerCase().includes(cleanNama)) return true;
+      return false;
+    });
 
     if (!target) {
       return { found: false };
     }
 
     const saldoTotal = getSaldoTabunganWarga(target.id);
-    const history = transaksiTabunganList
+    const history = (transaksiTabunganList || [])
       .filter(t => t.wargaId === target.id)
       .sort((a, b) => b.id - a.id);
 
