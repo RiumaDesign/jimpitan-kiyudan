@@ -6,8 +6,8 @@ import type {
 
 export const MOCK_USERS: User[] = [
   { id: 1, name: 'Slamet Rifaudin', username: 'slamet rifaudin', role: 'admin' },
-  { id: 2, name: 'Syarif Suharsono', username: 'syarif suharsono', role: 'admin' },
-  { id: 3, name: 'Humam Syarif', username: 'humam syarif', role: 'admin' },
+  { id: 2, name: 'Humam Syarif', username: 'humam syarif', role: 'admin' },
+  { id: 3, name: 'Syarif Suharsono', username: 'syarif suharsono', role: 'admin' },
   { id: 4, name: 'Afif Dwi Cahyo', username: 'afif dwi cahyo', role: 'admin' },
   { id: 5, name: 'Alvin Pratama', username: 'alvin pratama', role: 'admin' },
   { id: 6, name: 'Pawit', username: 'pawit', role: 'admin' },
@@ -106,7 +106,7 @@ export const INITIAL_PENGAMBILAN: PengambilanMingguan[] = [
     totalSetoran: 1490000,
     uangFisik: 1490000,
     selisih: 0,
-    petugasLapangan: 'Slamet Rifaudin (Ketua Pemuda)',
+    petugasLapangan: 'Slamet Rifaudin (Super Admin)',
     catatan: 'Pengambilan lancar, uang fisik cocok 100%.',
     tanggalDisahkan: '2026-08-01 22:30:00',
     disahkanOleh: 'Syarif Suharsono',
@@ -124,7 +124,7 @@ export const INITIAL_PENGAMBILAN: PengambilanMingguan[] = [
     totalSetoran: 1654000,
     uangFisik: 1654000,
     selisih: 0,
-    petugasLapangan: 'Humam Syarif (Pengurus)',
+    petugasLapangan: 'Humam Syarif (Ketua Pemuda)',
     catatan: '2 warga (Feri & Sugeng) tidak ada di rumah, ditunda ke minggu depan.',
     tanggalDisahkan: '2026-08-08 22:15:00',
     disahkanOleh: 'Syarif Suharsono',
@@ -142,7 +142,7 @@ export const INITIAL_PENGAMBILAN: PengambilanMingguan[] = [
     totalSetoran: 1800000,
     uangFisik: 1800000,
     selisih: 0,
-    petugasLapangan: 'Afif Dwi Cahyo (Pengurus)',
+    petugasLapangan: 'Afif Dwi Cahyo (Petugas Lapangan)',
     catatan: 'Termasuk pelunasan jimpitan Feri & Sugeng dari minggu lalu.',
     tanggalDisahkan: '2026-08-15 23:00:00',
     disahkanOleh: 'Syarif Suharsono',
@@ -160,7 +160,7 @@ export const INITIAL_PENGAMBILAN: PengambilanMingguan[] = [
     totalSetoran: 1554000,
     uangFisik: 0,
     selisih: 0,
-    petugasLapangan: 'Slamet Rifaudin (Ketua Pemuda)',
+    petugasLapangan: 'Humam Syarif (Ketua Pemuda)',
   },
 ];
 

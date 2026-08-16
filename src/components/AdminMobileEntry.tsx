@@ -188,24 +188,52 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
                   <span className="text-gray-500 shrink-0">Pilih Cepat:</span>
                   <button
                     type="button"
-                    onClick={() => setPetugasSesi('Danang Prasetyo (Petugas Lapangan)')}
-                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0"
+                    onClick={() => setPetugasSesi('Humam Syarif (Ketua Pemuda)')}
+                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0 font-semibold"
                   >
-                    Danang
+                    Humam (Ketua)
                   </button>
                   <button
                     type="button"
                     onClick={() => setPetugasSesi('Slamet Rifaudin (Super Admin)')}
-                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0"
+                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0 font-semibold"
                   >
                     Slamet Rifaudin
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPetugasSesi('Budi Santoso (Bendahara)')}
+                    onClick={() => setPetugasSesi('Syarif Suharsono (Bendahara)')}
+                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0 font-semibold"
+                  >
+                    Syarif Suharsono
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPetugasSesi('Afif Dwi Cahyo')}
                     className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0"
                   >
-                    Budi Santoso
+                    Afif
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPetugasSesi('Alvin Pratama')}
+                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0"
+                  >
+                    Alvin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPetugasSesi('Pawit')}
+                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0"
+                  >
+                    Pawit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPetugasSesi('Khoiruddin')}
+                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0"
+                  >
+                    Khoiruddin
                   </button>
                 </div>
               </div>

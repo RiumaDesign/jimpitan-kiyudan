@@ -16,15 +16,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   
-  // Official Officers List (7 Pengurus Resmi Kiyudan)
+  // Official Officers List (7 Pengurus Resmi Kiyudan & Petugas Lapangan)
   const officialOfficers = [
-    { name: 'Slamet Rifaudin', role: 'Super Admin / Ketua Pemuda' },
-    { name: 'Syarif Suharsono', role: 'Pengurus / Bendahara' },
-    { name: 'Humam Syarif', role: 'Pengurus Lapangan' },
-    { name: 'Afif Dwi Cahyo', role: 'Pengurus Lapangan' },
-    { name: 'Alvin Pratama', role: 'Pengurus Lapangan' },
-    { name: 'Pawit', role: 'Pengurus Lapangan' },
-    { name: 'Khoiruddin', role: 'Pengurus Lapangan' },
+    { name: 'Slamet Rifaudin', role: 'Super Admin & Petugas Lapangan' },
+    { name: 'Humam Syarif', role: 'Ketua Pemuda & Petugas Lapangan' },
+    { name: 'Syarif Suharsono', role: 'Bendahara & Petugas Lapangan' },
+    { name: 'Afif Dwi Cahyo', role: 'Pengurus & Petugas Lapangan' },
+    { name: 'Alvin Pratama', role: 'Pengurus & Petugas Lapangan' },
+    { name: 'Pawit', role: 'Pengurus & Petugas Lapangan' },
+    { name: 'Khoiruddin', role: 'Pengurus & Petugas Lapangan' },
   ];
 
   const [selectedOfficer, setSelectedOfficer] = useState('Slamet Rifaudin');
