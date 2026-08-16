@@ -365,46 +365,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const total = jimpitan + tabungan;
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
-    let updatedTxList: TransaksiPengambilan[] = [];
+    const newEntry: TransaksiPengambilan = {
+      id: Date.now(),
+      pengambilanId,
+      wargaId,
+      jimpitan: status === 'sudah_diambil' ? jimpitan : 0,
+      tabungan: status === 'sudah_diambil' ? tabungan : 0,
+      total: status === 'sudah_diambil' ? total : 0,
+      status,
+      waktuPengambilan: now,
+      keterangan,
+    };
 
-    // Strictly deduplicate: remove previous entry for this exact (pengambilanId, wargaId)
     setTransaksiPengambilanList(prev => {
       const cleaned = prev.filter(t => !(t.pengambilanId === pengambilanId && t.wargaId === wargaId));
-      const newEntry: TransaksiPengambilan = {
-        id: Date.now(),
-        pengambilanId,
-        wargaId,
-        jimpitan: status === 'sudah_diambil' ? jimpitan : 0,
-        tabungan: status === 'sudah_diambil' ? tabungan : 0,
-        total: status === 'sudah_diambil' ? total : 0,
-        status,
-        waktuPengambilan: now,
-        keterangan,
-      };
-      updatedTxList = [...cleaned, newEntry];
-      return updatedTxList;
+      const nextList = [...cleaned, newEntry];
+
+      // Immediately calculate totals from nextList and update PengambilanList
+      const sessionTx = nextList.filter(t => t.pengambilanId === pengambilanId && t.status === 'sudah_diambil');
+      const countSudah = sessionTx.length;
+      const sumJimpitan = sessionTx.reduce((acc, t) => acc + (t.jimpitan || 0), 0);
+      const sumTabungan = sessionTx.reduce((acc, t) => acc + (t.tabungan || 0), 0);
+      const sumTotal = sumJimpitan + sumTabungan;
+
+      setPengambilanList(prevPengambilan => prevPengambilan.map(p => {
+        if (p.id === pengambilanId) {
+          return {
+            ...p,
+            status: 'berjalan',
+            totalSudahDiambil: countSudah,
+            totalJimpitan: sumJimpitan,
+            totalTabungan: sumTabungan,
+            totalSetoran: sumTotal,
+          };
+        }
+        return p;
+      }));
+
+      return nextList;
     });
-
-    // Update PengambilanList using the fresh updatedTxList to prevent stale closure duplicates
-    setPengambilanList(prev => prev.map(p => {
-      if (p.id === pengambilanId) {
-        const sessionTx = updatedTxList.filter(t => t.pengambilanId === pengambilanId && t.status === 'sudah_diambil');
-        const countSudah = sessionTx.length;
-        const sumJimpitan = sessionTx.reduce((acc, t) => acc + t.jimpitan, 0);
-        const sumTabungan = sessionTx.reduce((acc, t) => acc + t.tabungan, 0);
-        const sumTotal = sumJimpitan + sumTabungan;
-
-        return {
-          ...p,
-          status: 'berjalan',
-          totalSudahDiambil: countSudah,
-          totalJimpitan: sumJimpitan,
-          totalTabungan: sumTabungan,
-          totalSetoran: sumTotal,
-        };
-      }
-      return p;
-    }));
   };
 
   const rekonsiliasiSahkanPengambilan = (
@@ -415,11 +414,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const targetSession = pengambilanList.find(p => p.id === pengambilanId);
     if (!targetSession) return { success: false, selisih: 0, message: 'Sesi pengambilan tidak ditemukan' };
 
-    const totalSystem = targetSession.totalSetoran;
+    const sessionTxItems = transaksiPengambilanList.filter(t => t.pengambilanId === pengambilanId && t.status === 'sudah_diambil');
+    const realJimpitan = sessionTxItems.length > 0 ? sessionTxItems.reduce((acc, t) => acc + (t.jimpitan || 0), 0) : targetSession.totalJimpitan;
+    const realTabungan = sessionTxItems.length > 0 ? sessionTxItems.reduce((acc, t) => acc + (t.tabungan || 0), 0) : targetSession.totalTabungan;
+    const totalSystem = realJimpitan + realTabungan;
     const selisih = uangFisik - totalSystem;
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
-    const splitNominal = Math.floor(targetSession.totalJimpitan / 2);
+    const splitNominal = Math.floor(realJimpitan / 2);
 
     const kasPemudaTx: TransaksiKas = {
       id: Date.now() + 1,
@@ -449,8 +451,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: now,
     };
 
-    const sessionTxItems = transaksiPengambilanList.filter(t => t.pengambilanId === pengambilanId && t.status === 'sudah_diambil' && t.tabungan > 0);
-    const newSavingsItems: TransaksiTabungan[] = sessionTxItems.map((t, idx) => ({
+    const savingsTxItems = sessionTxItems.filter(t => t.tabungan > 0);
+    const newSavingsItems: TransaksiTabungan[] = savingsTxItems.map((t, idx) => ({
       id: Date.now() + 10 + idx,
       wargaId: t.wargaId,
       periodeId: targetSession.periodeId,

@@ -9,13 +9,27 @@ interface ReconcileModalProps {
 }
 
 export const AdminReconciliationModal: React.FC<ReconcileModalProps> = ({ isOpen, onClose, pengambilanId }) => {
-  const { pengambilanList, rekonsiliasiSahkanPengambilan } = useApp();
+  const { pengambilanList, transaksiPengambilanList, rekonsiliasiSahkanPengambilan } = useApp();
 
   const targetSession = pengambilanId
     ? pengambilanList.find(p => p.id === pengambilanId)
     : pengambilanList.find(p => p.status === 'berjalan') || pengambilanList[pengambilanList.length - 1];
 
-  const totalSystem = targetSession ? targetSession.totalSetoran : 0;
+  // Calculate live from transaksiPengambilanList for targetSession
+  const sessionTx = targetSession 
+    ? (transaksiPengambilanList || []).filter(t => t.pengambilanId === targetSession.id && t.status === 'sudah_diambil')
+    : [];
+  
+  const liveCountSudah = sessionTx.length;
+  const liveJimpitan = sessionTx.reduce((sum, t) => sum + (t.jimpitan || 0), 0);
+  const liveTabungan = sessionTx.reduce((sum, t) => sum + (t.tabungan || 0), 0);
+  const liveTotalSetoran = liveJimpitan + liveTabungan;
+  
+  // Fallback to targetSession.totalSetoran if sessionTx is empty but targetSession has totalSetoran (e.g. historical sessions)
+  const totalSystem = liveTotalSetoran > 0 || liveCountSudah > 0 ? liveTotalSetoran : (targetSession ? targetSession.totalSetoran : 0);
+  const totalWargaDiambil = liveCountSudah > 0 ? liveCountSudah : (targetSession ? targetSession.totalSudahDiambil : 0);
+  const totalJimpitanSystem = liveJimpitan > 0 || liveCountSudah > 0 ? liveJimpitan : (targetSession ? targetSession.totalJimpitan : 0);
+  const totalTabunganSystem = liveTabungan > 0 || liveCountSudah > 0 ? liveTabungan : (targetSession ? targetSession.totalTabungan : 0);
   
   // Use String state so it handles smooth numeric typing, backspace, & auto-filling
   const [uangFisikInputStr, setUangFisikInputStr] = useState<string>(String(totalSystem));
@@ -25,17 +39,17 @@ export const AdminReconciliationModal: React.FC<ReconcileModalProps> = ({ isOpen
   // Sync state automatically whenever modal opens or active session updates
   useEffect(() => {
     if (targetSession) {
-      setUangFisikInputStr(String(targetSession.totalSetoran));
+      setUangFisikInputStr(String(totalSystem));
       setFeedback(null);
     }
-  }, [isOpen, targetSession?.id, targetSession?.totalSetoran]);
+  }, [isOpen, targetSession?.id, totalSystem]);
 
   if (!isOpen || !targetSession) return null;
 
   const numericUangFisik = Number(uangFisikInputStr) || 0;
   const selisih = numericUangFisik - totalSystem;
-  const splitPemuda = Math.floor(targetSession.totalJimpitan / 2);
-  const splitDusun = Math.floor(targetSession.totalJimpitan / 2);
+  const splitPemuda = Math.floor(totalJimpitanSystem / 2);
+  const splitDusun = Math.floor(totalJimpitanSystem / 2);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,15 +105,15 @@ export const AdminReconciliationModal: React.FC<ReconcileModalProps> = ({ isOpen
           <p className="text-gray-400 font-bold uppercase">Ringkasan Sistem Pengambilan Sesi:</p>
           <div className="flex justify-between">
             <span className="text-gray-300">Total Warga Diambil</span>
-            <span className="font-bold text-white">{targetSession.totalSudahDiambil} / {targetSession.totalWarga} Warga</span>
+            <span className="font-bold text-white">{totalWargaDiambil} / {targetSession.totalWarga} Warga</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-300">Total Jimpitan Sistem</span>
-            <span className="font-bold text-amber-400">Rp {targetSession.totalJimpitan.toLocaleString('id-ID')}</span>
+            <span className="font-bold text-amber-400">Rp {totalJimpitanSystem.toLocaleString('id-ID')}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-300">Total Setoran Tabungan Warga</span>
-            <span className="font-bold text-blue-400">Rp {targetSession.totalTabungan.toLocaleString('id-ID')}</span>
+            <span className="font-bold text-blue-400">Rp {totalTabunganSystem.toLocaleString('id-ID')}</span>
           </div>
           <div className="pt-2 border-t border-gray-800 flex justify-between text-sm font-bold">
             <span className="text-white">TOTAL UANG SISTEM:</span>
