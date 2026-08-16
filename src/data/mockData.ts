@@ -5,7 +5,7 @@ import type {
 } from '../types';
 
 export const MOCK_USERS: User[] = [
-  { id: 1, name: 'Slamet Rahardjo', username: 'admin', role: 'admin' },
+  { id: 1, name: 'Slamet Rahardjo', username: 'gemuk ireng', role: 'admin' },
   { id: 2, name: 'Budi Santoso', username: 'bendahara', role: 'bendahara' },
   { id: 3, name: 'Danang Prasetyo', username: 'petugas', role: 'petugas' },
 ];
@@ -253,8 +253,6 @@ export const INITIAL_TRANSAKSI_KAS: TransaksiKas[] = [
     buktiFoto: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
   },
 ];
-
-
 
 export const INITIAL_TABUNGAN_TRANSAKSI: TransaksiTabungan[] = INITIAL_WARGA.map((w, idx) => {
   const baseSavings = (idx + 1) * 25000 + 400000;

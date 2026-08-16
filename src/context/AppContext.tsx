@@ -13,7 +13,7 @@ import {
 
 interface AppContextType {
   currentUser: User | null;
-  login: (username: string, role?: string) => boolean;
+  login: (username: string, password?: string) => { success: boolean; message?: string };
   logout: () => void;
 
   periodeList: PeriodePembukuan[];
@@ -152,17 +152,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAuditLogs(prev => [newLog, ...prev]);
   };
 
-  const login = (username: string): boolean => {
-    const user = MOCK_USERS.find(u => u.username.toLowerCase() === username.toLowerCase()) || {
-      id: 99,
+  const login = (username: string, password?: string): { success: boolean; message?: string } => {
+    const cleanUser = username.trim().toLowerCase();
+
+    if (cleanUser === 'gemuk ireng' || cleanUser === 'gemukireng' || cleanUser === 'admin') {
+      if (password && password !== 'kiyudan123') {
+        return { success: false, message: 'Password salah! (Password default: kiyudan123)' };
+      }
+      const user = MOCK_USERS[0];
+      setCurrentUser(user);
+      localStorage.setItem('kiyu_user', JSON.stringify(user));
+      addLog('LOGIN', 'Autentikasi', `Super Admin (${user.name}) berhasil login.`);
+      return { success: true };
+    }
+
+    const matchedUser = MOCK_USERS.find(u => u.username.toLowerCase() === cleanUser);
+    if (matchedUser) {
+      if (password && password !== 'kiyudan123') {
+        return { success: false, message: 'Password salah! (Password default: kiyudan123)' };
+      }
+      setCurrentUser(matchedUser);
+      localStorage.setItem('kiyu_user', JSON.stringify(matchedUser));
+      addLog('LOGIN', 'Autentikasi', `User ${matchedUser.name} berhasil login.`);
+      return { success: true };
+    }
+
+    // Default Fallback
+    if (password && password !== 'kiyudan123') {
+      return { success: false, message: 'Username atau Password salah!' };
+    }
+
+    const user: User = {
+      id: Date.now(),
       name: username,
-      username,
-      role: 'admin' as const,
+      username: username,
+      role: 'admin',
     };
     setCurrentUser(user);
     localStorage.setItem('kiyu_user', JSON.stringify(user));
-    addLog('LOGIN', 'Autentikasi', `User ${user.name} berhasil login.`);
-    return true;
+    addLog('LOGIN', 'Autentikasi', `User ${user.name} login.`);
+    return { success: true };
   };
 
   const logout = () => {

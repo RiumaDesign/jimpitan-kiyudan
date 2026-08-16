@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Coins, Wallet, Landmark, FileText, UserCheck, 
-  Lock, LogOut, LayoutDashboard, ShieldCheck, Menu, X, ChevronRight, Home, FileSpreadsheet 
+  Lock, LogOut, LayoutDashboard, ShieldCheck, Menu, X, ChevronRight, Home, FileSpreadsheet, AlertCircle 
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -15,7 +15,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
   const { currentUser, logout, login } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [inputUsername, setInputUsername] = useState('admin');
+  
+  // Credentials as requested: username (gemuk ireng), password (kiyudan123)
+  const [inputUsername, setInputUsername] = useState('gemuk ireng');
+  const [inputPassword, setInputPassword] = useState('kiyudan123');
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const navLinks = [
     { id: 'home', label: 'Beranda', icon: Home },
@@ -36,9 +40,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login(inputUsername);
-    setShowLoginModal(false);
-    setActiveTab('admin-dashboard');
+    setLoginError(null);
+    const result = login(inputUsername, inputPassword);
+    if (result.success) {
+      setShowLoginModal(false);
+      setActiveTab('admin-dashboard');
+    } else {
+      setLoginError(result.message || 'Username atau password tidak sesuai.');
+    }
   };
 
   return (
@@ -271,34 +280,51 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, openSav
                 <img src="/logo.png" alt="Logo Dusun Kiyudan" className="w-full h-full object-contain" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">Login Pengurus</h3>
-                <p className="text-xs text-gray-400">Masuk untuk mengelola keuangan & jimpitan</p>
+                <h3 className="text-xl font-bold text-white">Login Autentikasi Admin</h3>
+                <p className="text-xs text-gray-400">Masuk untuk mengelola keuangan Dusun Kiyudan</p>
               </div>
             </div>
 
+            {loginError && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1.5">Pilih Akun Demo</label>
-                <select
+                <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                  Username Pengurus
+                </label>
+                <input
+                  type="text"
+                  required
                   value={inputUsername}
                   onChange={(e) => setInputUsername(e.target.value)}
+                  placeholder="Username (contoh: gemuk ireng)"
                   className="w-full glass-input px-4 py-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="admin" className="bg-gray-900 text-white">Slamet Rahardjo (Super Admin)</option>
-                  <option value="bendahara" className="bg-gray-900 text-white">Budi Santoso (Bendahara)</option>
-                  <option value="petugas" className="bg-gray-900 text-white">Danang Prasetyo (Petugas Lapangan)</option>
-                </select>
+                />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1.5">Password</label>
+                <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                  Password
+                </label>
                 <input
                   type="password"
-                  value="••••••••"
-                  readOnly
-                  className="w-full glass-input px-4 py-3 rounded-xl text-sm font-medium opacity-60 cursor-not-allowed"
+                  required
+                  value={inputPassword}
+                  onChange={(e) => setInputPassword(e.target.value)}
+                  placeholder="Password (default: kiyudan123)"
+                  className="w-full glass-input px-4 py-3 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500"
                 />
-                <p className="text-[11px] text-gray-500 mt-1">*Demo mode: langsung klik masuk</p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-gray-900/60 border border-gray-800 text-[11px] text-gray-400 space-y-1">
+                <p className="font-semibold text-amber-400">Akses Kredensial Pengurus:</p>
+                <p>• Username: <code className="text-white font-mono bg-gray-800 px-1 py-0.5 rounded">gemuk ireng</code></p>
+                <p>• Password: <code className="text-white font-mono bg-gray-800 px-1 py-0.5 rounded">kiyudan123</code></p>
               </div>
 
               <button

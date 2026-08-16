@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, Search, Check, Clock, ArrowLeft, Calendar, Save } from 'lucide-react';
+import { UserCheck, Search, Check, Clock, ArrowLeft, Calendar, Save, Sparkles } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 interface AdminMobileEntryProps {
@@ -16,7 +16,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
   const activeSession = pengambilanList.find(p => p.status === 'berjalan') || pengambilanList[pengambilanList.length - 1];
   const activeParticipants = pesertaList.filter(p => p.periodeId === currentPeriode.id && p.status === 'aktif');
 
-  // Metadata session states (Tanggal & Petugas Lapangan)
+  // Metadata session states (Tanggal & Petugas Lapangan - Free Input supported!)
   const [tanggalSesi, setTanggalSesi] = useState<string>(activeSession.tanggalPengambilan || new Date().toISOString().split('T')[0]);
   const [petugasSesi, setPetugasSesi] = useState<string>(activeSession.petugasLapangan || 'Danang Prasetyo (Petugas Lapangan)');
   const [isSavedMetadata, setIsSavedMetadata] = useState<boolean>(false);
@@ -28,6 +28,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'semua' | 'sudah' | 'belum'>('semua');
+  const [showSuggestions, setShowSuggestions] = useState(false);
   
   // Selected Warga for editing
   const [selectedWargaId, setSelectedWargaId] = useState<number | null>(null);
@@ -43,6 +44,15 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
       tx,
     };
   }).filter(item => item.warga !== undefined);
+
+  // Suggestions for autocomplete matching
+  const suggestedWarga = activeWargaItems.filter(item => {
+    if (!searchTerm.trim()) return false;
+    const term = searchTerm.toLowerCase();
+    return item.warga.nama.toLowerCase().includes(term) ||
+           item.warga.kodeWarga.toLowerCase().includes(term) ||
+           item.warga.noRumah.toLowerCase().includes(term);
+  });
 
   const filteredItems = activeWargaItems.filter(item => {
     const matchSearch = item.warga.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -67,6 +77,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
 
   const handleSelectWarga = (wargaId: number) => {
     setSelectedWargaId(wargaId);
+    setShowSuggestions(false);
     const existingTx = transaksiPengambilanList.find(t => t.pengambilanId === activeSession.id && t.wargaId === wargaId);
     if (existingTx && existingTx.status === 'sudah_diambil') {
       setTabunganInput(existingTx.tabungan);
@@ -119,7 +130,7 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
             <div>
               <div className="flex items-center space-x-2">
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 uppercase">
-                  📱 MOBILE ENTRY PETUGAS
+                  📱 MOBILE ENTRY PETUGAS KELILING
                 </span>
                 <span className="text-xs text-gray-400">Sesi Pengambilan #{activeSession.nomorPengambilan}</span>
               </div>
@@ -137,11 +148,11 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
           </div>
         </div>
 
-        {/* SESSION METADATA FORM: Tanggal Entry & Petugas Lapangan */}
+        {/* SESSION METADATA FORM: Tanggal Entry & Nama Petugas (Free Input Custom) */}
         <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-gray-900 to-gray-900 border border-emerald-500/20 space-y-3">
           <p className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center space-x-1.5">
             <Calendar className="w-4 h-4 text-emerald-400" />
-            <span>Pengaturan Tanggal Entry & Penanggung Jawab Sesi</span>
+            <span>Pengaturan Tanggal Entry & Nama Petugas Lapangan</span>
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -150,39 +161,60 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
               <label className="block text-[11px] font-semibold text-gray-300 mb-1">
                 Tanggal Pengambilan / Entry Data
               </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={tanggalSesi}
-                  onChange={(e) => setTanggalSesi(e.target.value)}
-                  className="w-full glass-input px-3.5 py-2 rounded-xl text-xs font-bold text-white focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
+              <input
+                type="date"
+                value={tanggalSesi}
+                onChange={(e) => setTanggalSesi(e.target.value)}
+                className="w-full glass-input px-3.5 py-2 rounded-xl text-xs font-bold text-white focus:ring-2 focus:ring-emerald-500"
+              />
             </div>
 
-            {/* Nama Petugas Lapangan Input */}
+            {/* Nama Petugas Lapangan Input (Free Input + Quick Options) */}
             <div>
               <label className="block text-[11px] font-semibold text-gray-300 mb-1">
-                Petugas Lapangan Yang Bertanggung Jawab
+                Nama Petugas Lapangan (Bisa Diisi Bebas)
               </label>
-              <div className="relative">
-                <select
+              <div className="space-y-1.5">
+                <input
+                  type="text"
                   value={petugasSesi}
                   onChange={(e) => setPetugasSesi(e.target.value)}
+                  placeholder="Ketik nama petugas yang bertugas..."
                   className="w-full glass-input px-3.5 py-2 rounded-xl text-xs font-bold text-amber-300 focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="Danang Prasetyo (Petugas Lapangan)" className="bg-gray-900">Danang Prasetyo (Petugas Lapangan)</option>
-                  <option value="Slamet Rahardjo (Super Admin)" className="bg-gray-900">Slamet Rahardjo (Super Admin)</option>
-                  <option value="Budi Santoso (Bendahara)" className="bg-gray-900">Budi Santoso (Bendahara)</option>
-                  <option value="Rian Permana (Anggota Pemuda)" className="bg-gray-900">Rian Permana (Anggota Pemuda)</option>
-                </select>
+                />
+                
+                {/* Quick Officer Chips */}
+                <div className="flex items-center space-x-1 overflow-x-auto pb-1 text-[10px]">
+                  <span className="text-gray-500 shrink-0">Pilih Cepat:</span>
+                  <button
+                    type="button"
+                    onClick={() => setPetugasSesi('Danang Prasetyo (Petugas Lapangan)')}
+                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0"
+                  >
+                    Danang
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPetugasSesi('Slamet Rifaudin (Super Admin)')}
+                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0"
+                  >
+                    Slamet Rifaudin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPetugasSesi('Budi Santoso (Bendahara)')}
+                    className="px-2 py-0.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white shrink-0"
+                  >
+                    Budi Santoso
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="flex items-center justify-between pt-1">
             <span className="text-[10px] text-gray-400 italic">
-              *Penanggung jawab sesi akan ditampilkan saat Bendahara melakukan Rekonsiliasi & Uang Fisik.
+              *Nama petugas akan dicatat pada audit log & laporan rekap fisik.
             </span>
             <button
               type="button"
@@ -211,17 +243,68 @@ export const AdminMobileEntry: React.FC<AdminMobileEntryProps> = ({ onGoToReconc
           </div>
         </div>
 
-        {/* Filter Chips & Search Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-          <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+        {/* Smart Autocomplete Search Bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 relative">
+          
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 text-emerald-400 absolute left-3 top-2.5" />
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Ketik nama / no rumah..."
-              className="w-full glass-input pl-9 pr-3 py-1.5 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500"
+              onFocus={() => setShowSuggestions(true)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setShowSuggestions(true);
+              }}
+              placeholder="🔍 Ketik nama warga (otomatis muncul saran)..."
+              className="w-full glass-input pl-9 pr-3 py-2 rounded-xl text-xs font-medium text-white focus:ring-2 focus:ring-emerald-500"
             />
+
+            {/* Smart Autocomplete Suggestions Floating Dropdown */}
+            {showSuggestions && suggestedWarga.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1.5 z-40 bg-gray-900 border border-emerald-500/40 rounded-2xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto animate-fadeIn">
+                <div className="px-3 py-1.5 bg-gray-950 border-b border-gray-800 text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center justify-between">
+                  <span className="flex items-center space-x-1">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <span>Saran Nama Terdaftar</span>
+                  </span>
+                  <span>{suggestedWarga.length} Hasil</span>
+                </div>
+
+                {suggestedWarga.map(item => (
+                  <div
+                    key={item.warga.id}
+                    onClick={() => {
+                      handleSelectWarga(item.warga.id);
+                      setSearchTerm('');
+                    }}
+                    className="p-3 border-b border-gray-800/60 hover:bg-emerald-500/20 cursor-pointer flex items-center justify-between transition-colors"
+                  >
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[10px] font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded">
+                          {item.warga.kodeWarga}
+                        </span>
+                        <span className="text-xs font-bold text-white">{item.warga.nama}</span>
+                      </div>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{item.warga.alamat} • {item.warga.noRumah}</p>
+                    </div>
+
+                    <div className="text-right">
+                      {item.tx?.status === 'sudah_diambil' ? (
+                        <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                          🟢 Sudah (Rp {item.tx.total.toLocaleString('id-ID')})
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+                          🟡 Pilih Untuk Input
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center space-x-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
